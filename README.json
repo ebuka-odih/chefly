@@ -1,0 +1,344 @@
+{
+    "app_name": "ChopWhat",
+    "brand": {
+        "primary_color": "#FF8A00",
+        "accent_color": "#FFB56B",
+        "background_color": "#FFFFFF",
+        "text_color_dark": "#222222",
+        "text_color_light": "#FFFFFF",
+        "neutral_grey": "#7A7A7A",
+        "success": "#4CAF50",
+        "danger": "#E53935",
+        "radius_large": 22,
+        "radius_medium": 16,
+        "radius_small": 8
+    },
+    "typography": {
+        "font_family_primary": "Inter",
+        "header_weight": "700",
+        "subheader_weight": "600",
+        "body_weight": "400"
+    },
+    "navigation": {
+        "type": "bottom_tab",
+        "tabs": [
+            {
+                "name": "Home",
+                "icon": "home",
+                "route": "HomeScreen"
+            },
+            {
+                "name": "Ideas",
+                "icon": "bookmark",
+                "route": "SavedRecipesScreen"
+            },
+            {
+                "name": "History",
+                "icon": "clock",
+                "route": "HistoryScreen"
+            },
+            {
+                "name": "Profile",
+                "icon": "user",
+                "route": "ProfileScreen"
+            }
+        ]
+    },
+    "screens": {
+        "SplashScreen": {
+            "background_color": "#FF8A00",
+            "components": [
+                {
+                    "type": "logo",
+                    "size": "large",
+                    "alignment": "center"
+                },
+                {
+                    "type": "text",
+                    "value": "ChopWhat",
+                    "style": "title",
+                    "alignment": "center",
+                    "color": "#FFFFFF"
+                },
+                {
+                    "type": "text",
+                    "value": "What can you cook today?",
+                    "style": "subtitle",
+                    "color": "#FFFFFF",
+                    "alignment": "center"
+                }
+            ]
+        },
+        "OnboardingScreens": {
+            "slides": [
+                {
+                    "title": "Snap your food items",
+                    "description": "Take a photo of your yam, plantain, veggies...",
+                    "image": "onboarding_camera.png"
+                },
+                {
+                    "title": "Get instant meal ideas",
+                    "description": "AI suggests 2–5 meals based on your ingredients.",
+                    "image": "onboarding_recipes.png"
+                },
+                {
+                    "title": "Cook with easy steps",
+                    "description": "Simple, beginner-friendly instructions.",
+                    "image": "onboarding_steps.png"
+                }
+            ],
+            "button": {
+                "label": "Get Started",
+                "action": "go_to_home",
+                "color": "#FF8A00",
+                "text_color": "#FFFFFF"
+            }
+        },
+        "HomeScreen": {
+            "header": {
+                "greeting": true,
+                "title": "What do you have?",
+                "subtitle": "Snap or type your ingredients",
+                "show_profile_avatar": true
+            },
+            "main_actions": [
+                {
+                    "type": "button_large",
+                    "label": "📷 Snap Ingredients",
+                    "route": "CameraScreen",
+                    "background_color": "#FF8A00",
+                    "text_color": "#FFFFFF",
+                    "icon": "camera"
+                },
+                {
+                    "type": "button_large_outlined",
+                    "label": "✍🏽 Type Ingredients",
+                    "route": "IngredientInputScreen",
+                    "border_color": "#FF8A00",
+                    "text_color": "#FF8A00",
+                    "icon": "edit"
+                }
+            ],
+            "quick_ingredients": [
+                "Yam",
+                "Rice",
+                "Plantain",
+                "Eggs",
+                "Tomatoes",
+                "Onions",
+                "Chicken",
+                "Pepper"
+            ],
+            "floating_button": {
+                "icon": "sparkles",
+                "action": "SuggestMeals",
+                "visible_condition": "ingredients_selected"
+            }
+        },
+        "CameraScreen": {
+            "components": [
+                {
+                    "type": "camera_view"
+                },
+                {
+                    "type": "button",
+                    "label": "Capture",
+                    "icon": "camera",
+                    "position": "bottom_center",
+                    "background_color": "#FF8A00",
+                    "text_color": "#FFFFFF"
+                }
+            ],
+            "post_capture": {
+                "show_detecting_state": true,
+                "detected_ingredients_list": {
+                    "type": "ingredient_list_with_checkboxes",
+                    "editable": true
+                },
+                "actions": [
+                    {
+                        "type": "button_primary",
+                        "label": "Generate Meal Ideas",
+                        "route": "SuggestionsScreen"
+                    }
+                ]
+            }
+        },
+        "IngredientInputScreen": {
+            "header": "Type or Select Your Ingredients",
+            "components": [
+                {
+                    "type": "text_input_multiline",
+                    "placeholder": "e.g. yam, tomatoes, plantain, pepper...",
+                    "border_color": "#FF8A00"
+                },
+                {
+                    "type": "ingredient_chips",
+                    "items": [
+                        "Yam",
+                        "Rice",
+                        "Egg",
+                        "Plantain",
+                        "Tomatoes",
+                        "Pepper",
+                        "Onions"
+                    ],
+                    "selectable": true
+                },
+                {
+                    "type": "button_primary",
+                    "label": "Generate Meal Ideas",
+                    "route": "SuggestionsScreen"
+                }
+            ]
+        },
+        "SuggestionsScreen": {
+            "header": {
+                "title": "Meals You Can Cook",
+                "subtitle": "Based on your ingredients"
+            },
+            "components": [
+                {
+                    "type": "recipe_card",
+                    "fields": {
+                        "image": "auto_or_placeholder",
+                        "name": "string",
+                        "description": "short_text",
+                        "time": "minutes",
+                        "difficulty": "easy|medium|hard",
+                        "uses_count": "integer",
+                        "missing_count": "integer"
+                    },
+                    "actions": [
+                        {
+                            "type": "button_small",
+                            "label": "View Recipe",
+                            "route": "RecipeDetailScreen"
+                        },
+                        {
+                            "type": "icon_button",
+                            "icon": "heart",
+                            "action": "save_recipe"
+                        }
+                    ]
+                }
+            ]
+        },
+        "RecipeDetailScreen": {
+            "header_image": "dish_photo_or_placeholder",
+            "recipe_info": {
+                "name": "string",
+                "description": "string",
+                "estimated_time": "minutes",
+                "difficulty": "label",
+                "meal_type": "breakfast|lunch|dinner"
+            },
+            "sections": [
+                {
+                    "type": "ingredients_section",
+                    "title": "Ingredients",
+                    "you_have": [],
+                    "you_need": []
+                },
+                {
+                    "type": "steps_section",
+                    "title": "Steps",
+                    "step_format": "numbered",
+                    "steps": []
+                }
+            ],
+            "bottom_actions": [
+                {
+                    "type": "button_primary",
+                    "label": "Start Cooking Mode",
+                    "route": "CookingModeScreen"
+                },
+                {
+                    "type": "button_secondary",
+                    "label": "Save Recipe"
+                }
+            ]
+        },
+        "CookingModeScreen": {
+            "presentation": "full_screen_dark_mode",
+            "background_color": "#222222",
+            "text_color": "#FFFFFF",
+            "step_display": {
+                "type": "large_step_text",
+                "pagination": "swipe_left_right"
+            },
+            "actions": [
+                {
+                    "type": "button",
+                    "label": "Next Step",
+                    "action": "go_next"
+                },
+                {
+                    "type": "button",
+                    "label": "Previous",
+                    "action": "go_previous"
+                },
+                {
+                    "type": "button",
+                    "label": "Exit",
+                    "action": "close"
+                }
+            ]
+        },
+        "SavedRecipesScreen": {
+            "header": "Saved Ideas",
+            "components": [
+                {
+                    "type": "recipe_card_list",
+                    "source": "saved_recipes"
+                }
+            ]
+        },
+        "HistoryScreen": {
+            "header": "Your Cooking History",
+            "components": [
+                {
+                    "type": "history_item",
+                    "fields": {
+                        "date": "timestamp",
+                        "ingredients_used": [],
+                        "recipe_chosen": "string"
+                    }
+                }
+            ]
+        },
+        "ProfileScreen": {
+            "header": "Profile",
+            "components": [
+                {
+                    "type": "avatar"
+                },
+                {
+                    "type": "text",
+                    "label": "Name"
+                },
+                {
+                    "type": "preference_list",
+                    "items": [
+                        {
+                            "title": "Cuisine Focus",
+                            "value": "Nigerian"
+                        },
+                        {
+                            "title": "Spice Level",
+                            "value": "Medium"
+                        },
+                        {
+                            "title": "Avoid Ingredients",
+                            "value": "None"
+                        }
+                    ]
+                },
+                {
+                    "type": "button_secondary",
+                    "label": "Give Feedback"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,230 @@
+{
+  "project_name": "ChopWhat Backend",
+  "description": "FastAPI backend for an AI-powered cooking suggestion app. Handles ingredient detection, recipe generation, user data, and history. Integrates with OpenAI models.",
+
+  "should_backend_be_agent": {
+    "use_agent": false,
+    "reason": "Agents are slow, unpredictable, expensive, and unnecessary. The backend should be a deterministic FastAPI REST API that calls OpenAI models for ingredients + recipes."
+  },
+
+  "openai_models": {
+    "vision_model": {
+      "name": "gpt-4o-mini",
+      "purpose": "Detect ingredients from photos. Fast and cheap with good accuracy."
+    },
+    "recipe_model": {
+      "name": "gpt-4.1-mini",
+      "purpose": "Generate structured JSON recipes from ingredient lists."
+    }
+  },
+
+  "architecture": {
+    "type": "FastAPI REST Backend",
+    "components": [
+      "Auth Service (optional for MVP)",
+      "Ingredient Detection Service",
+      "Recipe Generation Service",
+      "User History Service",
+      "User Saved Recipes Service",
+      "Database Layer (PostgreSQL)",
+      "Optional Cache Layer (Redis)",
+      "OpenAI API Integration Layer"
+    ]
+  },
+
+  "folder_structure": {
+    "backend/": {
+      "app/": {
+        "main.py": "FastAPI entry point",
+        "config.py": "Environment variables + settings",
+        "routes/": {
+          "auth.py": "Authentication endpoints",
+          "ingredients.py": "Ingredient detection endpoints",
+          "recipes.py": "Recipe suggestion + saving endpoints",
+          "history.py": "Fetch user cooking history",
+          "users.py": "User profile settings"
+        },
+        "services/": {
+          "ai_vision.py": "Handles calls to vision model",
+          "ai_recipes.py": "Handles calls to recipe model",
+          "ingredient_service.py": "Ingredient normalization logic",
+          "recipe_service.py": "Recipe saving/retrieval logic"
+        },
+        "db/": {
+          "database.py": "SQLAlchemy/DB connection",
+          "models.py": "Database ORM models",
+          "migrations/": "Alembic migration files"
+        },
+        "schemas/": {
+          "recipes.py": "Pydantic schemas for recipes",
+          "ingredients.py": "Pydantic schemas for ingredients",
+          "users.py": "Pydantic profile schemas",
+          "history.py": "Pydantic schemas for history"
+        },
+        "utils/": {
+          "normalizer.py": "Ingredient name cleaning",
+          "logger.py": "Logging helpers",
+          "cache.py": "Redis cache abstraction"
+        }
+      },
+      "tests/": {},
+      "requirements.txt": "Dependencies"
+    }
+  },
+
+  "api_endpoints": {
+    "POST /ingredients/detect": {
+      "description": "Detect ingredients in an uploaded image.",
+      "request": "multipart/form-data image",
+      "response": {
+        "ingredients": ["yam", "plantain", "tomatoes", "onions"]
+      }
+    },
+    "POST /recipes/suggest": {
+      "description": "Generate recipe suggestions based on ingredients.",
+      "request": {
+        "ingredients": ["yam", "tomatoes", "onions"],
+        "preferences": {
+          "cuisine": "nigerian",
+          "spice_level": "medium",
+          "max_time": 40
+        }
+      },
+      "response": {
+        "recipes": [
+          {
+            "name": "Yam Porridge (Asaro)",
+            "description": "Soft yam cooked in spicy tomato sauce.",
+            "estimated_time_minutes": 35,
+            "uses_from_user": ["yam", "tomatoes", "onions"],
+            "extra_ingredients": ["salt", "oil", "seasoning cubes"],
+            "steps": [
+              "Peel and cut the yam.",
+              "Blend tomatoes and onions.",
+              "Cook with oil and seasoning."
+            ],
+            "difficulty": "easy",
+            "meal_type": "lunch"
+          }
+        ]
+      }
+    },
+    "POST /recipes/save": {
+      "description": "Save a recipe to user's profile.",
+      "request": { "recipe_id": "uuid" },
+      "response": { "status": "saved" }
+    },
+    "GET /recipes/saved": {
+      "description": "Get saved recipes.",
+      "response": { "recipes": [] }
+    },
+    "GET /history": {
+      "description": "Get user cooking history.",
+      "response": {
+        "history": [
+          {
+            "date": "timestamp",
+            "ingredients_used": ["yam", "tomatoes"],
+            "recipe_name": "Yam Porridge (Asaro)"
+          }
+        ]
+      }
+    }
+  },
+
+  "database_schema": {
+    "users": {
+      "id": "UUID PK",
+      "name": "TEXT",
+      "email": "TEXT UNIQUE",
+      "password_hash": "TEXT",
+      "created_at": "TIMESTAMP"
+    },
+    "ingredient_snapshots": {
+      "id": "UUID PK",
+      "user_id": "UUID FK → users.id",
+      "ingredients": "JSONB ARRAY",
+      "image_url": "TEXT",
+      "created_at": "TIMESTAMP"
+    },
+    "recipes": {
+      "id": "UUID PK",
+      "name": "TEXT",
+      "description": "TEXT",
+      "payload": "JSONB (full recipe data)",
+      "created_at": "TIMESTAMP"
+    },
+    "user_saved_recipes": {
+      "id": "UUID PK",
+      "user_id": "UUID FK",
+      "recipe_id": "UUID FK",
+      "created_at": "TIMESTAMP"
+    },
+    "user_history": {
+      "id": "UUID PK",
+      "user_id": "UUID FK",
+      "ingredients": "JSONB",
+      "recipe": "JSONB",
+      "created_at": "TIMESTAMP"
+    }
+  },
+
+  "ai_workflow": {
+    "image_detection_flow": [
+      "User uploads image",
+      "FastAPI receives image",
+      "Backend sends image → gpt-4o-mini",
+      "Model returns ingredient list",
+      "Backend normalizes names",
+      "Return ingredients to mobile app"
+    ],
+    "recipe_generation_flow": [
+      "User sends ingredients",
+      "Backend checks Redis cache (optional)",
+      "If cached → return",
+      "If not cached → call gpt-4.1-mini",
+      "Model returns structured JSON recipe list",
+      "Store recipes & return results",
+      "Cache results for future queries"
+    ]
+  },
+
+  "ai_prompts": {
+    "vision_prompt_template": {
+      "system": "You are an ingredient-detection assistant. Only return JSON.",
+      "user": "Detect all food items in this photo. Use simple names like yam, plantain, tomatoes, onion."
+    },
+    "recipe_generation_prompt_template": {
+      "system": "You are an expert African cooking assistant. Always return JSON.",
+      "user_template": {
+        "ingredients": "{{ingredients_list}}",
+        "preferences": {
+          "cuisine": "{{cuisine}}",
+          "spice_level": "{{spice_level}}",
+          "max_time": "{{max_time}}"
+        },
+        "rules": [
+          "Suggest 2–5 meals",
+          "Use mostly user's ingredients",
+          "Add 1–3 simple extras (salt, oil)",
+          "Return valid JSON only",
+          "Include steps, time, difficulty, description"
+        ]
+      }
+    }
+  },
+
+  "caching_strategy": {
+    "use_redis": true,
+    "cache_key_format": "recipes:{ingredients_hash}:{preferences_hash}",
+    "expires_in_hours": 24
+  },
+
+  "recommended_stacks": {
+    "backend": "FastAPI + SQLAlchemy",
+    "database": "PostgreSQL",
+    "cache": "Redis",
+    "storage": "S3 or Cloudflare R2",
+    "auth": "JWT or Firebase Auth"
+  }
+}
