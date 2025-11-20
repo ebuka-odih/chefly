@@ -1,0 +1,10 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Smooth transitions for route changes */
+.route-transition {
+  animation: fadeIn 0.3s ease-out;
+}

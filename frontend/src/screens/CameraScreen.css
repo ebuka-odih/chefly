@@ -1,0 +1,255 @@
+.camera-screen {
+    min-height: 100vh;
+    background-color: var(--color-background);
+    display: flex;
+    flex-direction: column;
+}
+
+.camera-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.camera-header h2 {
+    font-size: 20px;
+    font-weight: var(--font-weight-subheader);
+    color: var(--color-text-dark);
+}
+
+.back-button {
+    background: none;
+    color: var(--color-text-dark);
+    padding: 8px;
+    border-radius: var(--radius-small);
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.camera-placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.camera-icon-container {
+    width: 120px;
+    height: 120px;
+    border-radius: 60px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-light);
+    margin-bottom: 30px;
+    box-shadow: 0 8px 24px rgba(255, 138, 0, 0.3);
+}
+
+.camera-placeholder h3 {
+    font-size: 24px;
+    font-weight: var(--font-weight-header);
+    color: var(--color-text-dark);
+    margin-bottom: 12px;
+}
+
+.camera-placeholder p {
+    font-size: 16px;
+    color: var(--color-neutral-grey);
+    margin-bottom: 40px;
+    max-width: 300px;
+}
+
+.camera-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.capture-button,
+.upload-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 24px;
+    border-radius: var(--radius-medium);
+    font-size: 16px;
+    font-weight: var(--font-weight-subheader);
+    transition: all 0.3s ease;
+}
+
+.capture-button {
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+}
+
+.capture-button:hover {
+    background-color: #E67A00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
+}
+
+.upload-button {
+    background-color: transparent;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+}
+
+.upload-button:hover {
+    background-color: rgba(255, 138, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+/* Detection Result */
+.detection-result {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.captured-image-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 30px;
+    border-radius: var(--radius-large);
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.captured-image-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.retake-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: var(--color-text-light);
+    padding: 8px 16px;
+    border-radius: var(--radius-small);
+    font-size: 14px;
+    font-weight: var(--font-weight-subheader);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.retake-button:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+.detecting-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.detecting-state p {
+    margin-top: 20px;
+    font-size: 16px;
+    color: var(--color-neutral-grey);
+}
+
+.ingredients-section {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.ingredients-section h3 {
+    font-size: 20px;
+    font-weight: var(--font-weight-subheader);
+    color: var(--color-text-dark);
+    margin-bottom: 8px;
+}
+
+.ingredients-hint {
+    font-size: 14px;
+    color: var(--color-neutral-grey);
+    margin-bottom: 20px;
+}
+
+.ingredients-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.ingredient-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background-color: var(--color-background);
+    border: 2px solid rgba(122, 122, 122, 0.25);
+    border-radius: var(--radius-medium);
+    font-size: 16px;
+    color: var(--color-text-dark);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.ingredient-item:hover {
+    border-color: var(--color-primary);
+    background-color: rgba(255, 138, 0, 0.05);
+}
+
+.ingredient-item.selected {
+    background-color: rgba(255, 138, 0, 0.1);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    font-weight: var(--font-weight-subheader);
+}
+
+.deselected-icon {
+    opacity: 0.3;
+}
+
+.generate-meals-button {
+    width: 100%;
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+    padding: 18px;
+    border-radius: var(--radius-medium);
+    font-size: 18px;
+    font-weight: var(--font-weight-subheader);
+    transition: all 0.3s ease;
+}
+
+.generate-meals-button:hover:not(:disabled) {
+    background-color: #E67A00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
+}
+
+.generate-meals-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+    .camera-placeholder h3 {
+        font-size: 20px;
+    }
+
+    .camera-placeholder p {
+        font-size: 14px;
+    }
+}
