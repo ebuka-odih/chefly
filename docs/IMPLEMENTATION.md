@@ -14,7 +14,7 @@ The repo already had a FastAPI skeleton, but it could not deploy or run as-is:
 
 | Problem (before) | Fix (now) |
 |---|---|
-| **No `Dockerfile`** — Dokploy build failed with `failed to read dockerfile`. | Added `/Dockerfile` (repo root) + `.dockerignore`. |
+| **No `Dockerfile`** — Dokploy build failed with `failed to read dockerfile`. | Added `backend/Dockerfile` + `.dockerignore` (Dokploy's build context is `backend/`). |
 | Used the **OpenAI API directly** (`OPENAI_API_KEY`, `GOOGLE_API_KEY`), but the server only has **`OPENROUTER_KEY`**. App crashed at import. | All AI calls now go through **OpenRouter** (OpenAI-compatible). Single shared client in `services/llm.py`. |
 | `config.py` **required** keys with no defaults → boot crash when unset. | Every setting has a safe default; only `OPENROUTER_KEY` is needed for live AI. |
 | `requirements.txt` **missing** `python-jose`, `passlib`/`argon2`, `email-validator` (all imported in code) → runtime ImportError. | Requirements completed; unused `google-generativeai`/`pillow` removed. |
@@ -148,8 +148,8 @@ See `backend/.env.example`. Local dev runs on SQLite with zero Postgres setup
 ## 7. Deployment (Dokploy)
 
 - **App:** `chefly-api` · **Source:** `github.com/ebuka-odih/chefly` · **Branch:** `main`
-- **Build:** Dockerfile (repo root). Context is the whole repo; only `backend/`
-  is copied in.
+- **Build:** `backend/Dockerfile`, with the build context set to `backend/`
+  (Dokploy `dockerContextPath=backend`).
 - **DB:** `chefly-db` (Postgres) on `dokploy-network`; reached via the
   `DATABASE_URL` service name.
 - **Env** is set in Dokploy (`DATABASE_URL`, `OPENROUTER_KEY`, `SECRET_KEY`).

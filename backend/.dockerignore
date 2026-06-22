@@ -1,0 +1,12 @@
+# Build context is backend/ — keep it small and reproducible.
+venv/
+.venv/
+*.db
+test_*.py
+add_column.py
+list_models.py
+**/__pycache__/
+**/*.pyc
+.env
+app/static/images/*
+!app/static/images/.gitkeep
