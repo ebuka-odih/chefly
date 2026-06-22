@@ -21,17 +21,21 @@ Chefly is an intelligent, AI-powered cooking assistant designed to help you cook
 
 ## 🧠 AI Models & Technology
 
-Chefly is built using cutting-edge Artificial Intelligence to provide a seamless experience:
+All AI runs through **[OpenRouter](https://openrouter.ai)** (one OpenAI-compatible
+API, swappable models). See [`IMPLEMENTATION.md`](IMPLEMENTATION.md) for details.
 
-- **Google Gemini**: Used for **Computer Vision** and **Image Generation**.
-  - *Vision*: Analyzes photos to accurately detect and list ingredients.
-  - *Generation*: Creates beautiful, stylized images for recipe cards and cooking steps.
-- **OpenAI (GPT-4)**: Powers the **Recipe Intelligence**.
-  - Generates creative, coherent, and accurate recipes.
-  - Understands culinary context to provide helpful tips and substitutions.
+- **Vision** (`openai/gpt-4o-mini`): analyzes photos to detect and list ingredients,
+  time-aware and tuned for African/Nigerian staples.
+- **Recipe intelligence** (`openai/gpt-4.1-mini`): generates structured,
+  **time-of-day-aware** recipes — quick energising food in the morning, a proper
+  meal at dinner — with steps, timing and substitutions.
+- **Image generation** (`google/gemini-2.5-flash-image`): photorealistic dish and
+  cooking-step images, cached aggressively to keep cost down.
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React Native (Expo) for a cross-platform mobile experience (iOS, Android, and Web).
 - **Backend**: Python (FastAPI) for a robust and high-performance API.
-- **Database**: PostgreSQL (Neon) for reliable data storage.
+- **AI gateway**: OpenRouter (vision · recipes · images).
+- **Database**: PostgreSQL for reliable data storage.
+- **Deploy**: Docker + Dokploy (auto-deploy from `main`).

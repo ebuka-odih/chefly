@@ -5,3 +5,10 @@ __pycache__/
 *.pyc
 venv/
 .DS_Store
+
+# Local databases
+*.db
+
+# Generated dish/step images (created at runtime, never committed)
+backend/app/static/images/*
+!backend/app/static/images/.gitkeep
