@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, Menu } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { C, F, R, SHADOW } from '@/theme/tokens';
 
 // Round icon button (icon-btn round) — surface tile, soft shadow.
@@ -35,11 +35,11 @@ type Props = {
   greeting?: string;
   subtitle?: string;
   onBack?: () => void;
-  onMenu?: () => void;
+  left?: ReactNode; // leading slot — overrides the default back chevron when provided
   right?: ReactNode;
 };
 
-export function AppHeader({ variant = 'page', title, accent, greeting, subtitle, onBack, onMenu, right }: Props) {
+export function AppHeader({ variant = 'page', title, accent, greeting, subtitle, onBack, left, right }: Props) {
   const insets = useSafeAreaInsets();
   const enter = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -67,15 +67,13 @@ export function AppHeader({ variant = 'page', title, accent, greeting, subtitle,
   return (
     <View style={[styles.wrap, { paddingTop: insets.top + 12 }]}>
       <View style={styles.row}>
-        {variant === 'home' ? (
-          <IconBtn onPress={onMenu}>
-            <Menu size={20} color={C.ink} strokeWidth={2.4} />
-          </IconBtn>
-        ) : (
+        {left ? (
+          left
+        ) : variant === 'page' ? (
           <IconBtn onPress={onBack}>
             <ChevronLeft size={22} color={C.ink} strokeWidth={2.4} />
           </IconBtn>
-        )}
+        ) : null}
 
         {variant === 'page' && title ? <Text style={styles.pageTitle}>{title}</Text> : <View style={{ flex: 1 }} />}
 

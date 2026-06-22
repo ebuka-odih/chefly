@@ -2,11 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { View, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { House, Bookmark, Clock, User, ScanLine } from 'lucide-react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { C, R, SHADOW } from '@/theme/tokens';
+import { C, R, GRAD, SHADOW } from '@/theme/tokens';
 
 type IconCmp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+// Home · Saved | scan | History · Profile
 const ICONS: Record<string, IconCmp> = { index: House, saved: Bookmark, history: Clock, profile: User };
 const LEFT = ['index', 'saved'];
 const RIGHT = ['history', 'profile'];
@@ -47,15 +49,20 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         <View style={styles.gap} />
         {RIGHT.map(renderTab)}
 
-        <Pressable
-          onPress={() => router.push('/camera')}
-          accessibilityLabel="Scan ingredients"
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.92 }] }]}
-        >
-          <Animated.View style={[styles.ring, ringStyle]} />
-          <ScanLine size={26} color={C.white} strokeWidth={2.3} />
-        </Pressable>
+        {/* Full-width centered slot — keeps the FAB on the true center
+            regardless of the pill's horizontal padding. */}
+        <View style={styles.fabSlot} pointerEvents="box-none">
+          <Pressable
+            onPress={() => router.push('/camera')}
+            accessibilityLabel="Scan ingredients"
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.92 }] }]}
+          >
+            <LinearGradient colors={GRAD.cooking} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.fabFill} />
+            <Animated.View style={[styles.ring, ringStyle]} />
+            <ScanLine size={26} color={C.white} strokeWidth={2.4} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -78,20 +85,18 @@ const styles = StyleSheet.create({
   navPill: { width: 56, height: 46, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   navPillOn: { backgroundColor: C.saffronSoft },
   gap: { width: 66 },
+  fabSlot: { position: 'absolute', left: 0, right: 0, top: -22, alignItems: 'center' },
   fab: {
-    position: 'absolute',
-    top: -20,
-    left: '50%',
-    marginLeft: -32,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0C0C0C',
-    borderWidth: 6,
+    backgroundColor: C.forestDeep,
+    borderWidth: 5,
     borderColor: C.bg,
     ...SHADOW.card,
   },
-  ring: { position: 'absolute', top: -6, left: -6, width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: C.green },
+  fabFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 33 },
+  ring: { position: 'absolute', top: -5, left: -5, width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: C.green },
 });

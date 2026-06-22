@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Animated, Easing 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, SlidersHorizontal, Pencil, Sparkles, Bell, ChevronRight, X, Clock, Flame } from 'lucide-react-native';
-import { C, F, R, SHADOW } from '@/theme/tokens';
-import { RECIPES, getRecipe, LAST_SCAN_ID, RECOMMENDED, nutritionFor, emojiFor } from '@/data/mock';
+import { Search, SlidersHorizontal, Pencil, Sparkles, Bell, ChevronRight, X, Clock, Flame, Star, Heart, ArrowUpRight } from 'lucide-react-native';
+import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
+import { getRecipe, LAST_SCAN_ID, RECOMMENDED, nutritionFor, emojiFor, ratingFor } from '@/data/mock';
 import { AppHeader, IconBtn } from '@/components/AppHeader';
 import { DishImage } from '@/components/DishImage';
 import { MacroBadge } from '@/components/MacroBadge';
@@ -32,6 +32,14 @@ export default function Home() {
   const [showSurprise, setShowSurprise] = useState(false);
   const [mealType, setMealType] = useState('Lunch');
   const [foodType, setFoodType] = useState('Rice');
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const toggleSave = (id: string) =>
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const hero = getRecipe(LAST_SCAN_ID);
   const heroN = nutritionFor(hero.id);
@@ -49,15 +57,15 @@ export default function Home() {
         greeting="Hello, Chef 👋"
         title="Let's cook something"
         accent="good"
+        left={
+          <IconBtn dot>
+            <Bell size={20} color={C.ink} strokeWidth={2.2} />
+          </IconBtn>
+        }
         right={
-          <>
-            <IconBtn dot>
-              <Bell size={20} color={C.ink} strokeWidth={2.2} />
-            </IconBtn>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarTxt}>C</Text>
-            </View>
-          </>
+          <Pressable onPress={() => router.push('/(tabs)/profile')} style={styles.avatar}>
+            <Text style={styles.avatarTxt}>C</Text>
+          </Pressable>
         }
       />
 
@@ -80,24 +88,37 @@ export default function Home() {
         {/* action tiles */}
         <FadeUp delay={60}>
           <View style={styles.tiles}>
-            <Pressable style={[styles.tile, SHADOW.sm]} onPress={() => router.push('/ingredients')}>
-              <LinearGradient colors={['#8BC34A', '#689F38']} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-              <View style={styles.tileIcoLight}>
-                <Pencil size={22} color={C.white} strokeWidth={2.2} />
+            <Pressable style={({ pressed }) => [styles.tile, SHADOW.card, pressed && styles.tilePressed]} onPress={() => router.push('/ingredients')}>
+              <LinearGradient colors={GRAD.warm} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+              <LinearGradient colors={['rgba(255,255,255,0.30)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.62 }} style={StyleSheet.absoluteFill} />
+              <View style={styles.tileTop}>
+                <View style={styles.tileIco}>
+                  <Pencil size={21} color={C.white} strokeWidth={2.4} />
+                </View>
+                <View style={styles.tileArrow}>
+                  <ArrowUpRight size={16} color={C.white} strokeWidth={2.6} />
+                </View>
               </View>
               <View>
-                <Text style={styles.tileTitleLight}>Type</Text>
-                <Text style={styles.tileSubLight}>Enter ingredients</Text>
+                <Text style={styles.tileTitle}>Type</Text>
+                <Text style={styles.tileSub}>Enter ingredients</Text>
               </View>
             </Pressable>
 
-            <Pressable style={[styles.tile, styles.tileDark, SHADOW.sm]} onPress={() => setShowSurprise(true)}>
-              <View style={styles.tileIcoLight}>
-                <Sparkles size={22} color={C.white} strokeWidth={2.2} />
+            <Pressable style={({ pressed }) => [styles.tile, SHADOW.card, pressed && styles.tilePressed]} onPress={() => setShowSurprise(true)}>
+              <LinearGradient colors={GRAD.cooking} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+              <LinearGradient colors={['rgba(255,255,255,0.14)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.62 }} style={StyleSheet.absoluteFill} />
+              <View style={styles.tileTop}>
+                <View style={styles.tileIco}>
+                  <Sparkles size={21} color={C.white} strokeWidth={2.4} />
+                </View>
+                <View style={styles.tileArrow}>
+                  <ArrowUpRight size={16} color={C.white} strokeWidth={2.6} />
+                </View>
               </View>
               <View>
-                <Text style={styles.tileTitleLight}>Surprise</Text>
-                <Text style={styles.tileSubLight}>Random idea</Text>
+                <Text style={styles.tileTitle}>Surprise</Text>
+                <Text style={styles.tileSub}>Random idea</Text>
               </View>
             </Pressable>
           </View>
@@ -142,15 +163,36 @@ export default function Home() {
         >
           {rail.map((r) => {
             const n = nutritionFor(r.id);
+            const isSaved = savedIds.has(r.id);
             return (
-              <Pressable key={r.id} style={[styles.railCard, SHADOW.card]} onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: r.id } })}>
-                <DishImage category={r.category} height={148} radius={0} emojiSize={62} />
+              <Pressable
+                key={r.id}
+                style={({ pressed }) => [styles.railCard, SHADOW.card, pressed && { transform: [{ scale: 0.98 }] }]}
+                onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: r.id } })}
+              >
+                <View style={styles.railCover}>
+                  <DishImage category={r.category} height={150} radius={0} emojiSize={64} />
+                  <View style={styles.ratingChip}>
+                    <Star size={12} color="#F6B73C" fill="#F6B73C" strokeWidth={0} />
+                    <Text style={styles.ratingTxt}>{ratingFor(r.id).toFixed(1)}</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => toggleSave(r.id)}
+                    hitSlop={8}
+                    style={[styles.railHeart, isSaved && styles.railHeartOn]}
+                    accessibilityRole="button"
+                    accessibilityLabel={isSaved ? 'Remove from saved' : 'Save recipe'}
+                  >
+                    <Heart size={15} color={isSaved ? C.white : C.ink} fill={isSaved ? C.white : 'transparent'} strokeWidth={2.2} />
+                  </Pressable>
+                </View>
                 <View style={styles.railBody}>
                   <Text style={styles.railName} numberOfLines={1}>{r.name}</Text>
                   <View style={styles.railMetaRow}>
-                    <Clock size={13} color={C.ink3} />
+                    <Clock size={13} color={C.ink3} strokeWidth={2.2} />
                     <Text style={styles.railMeta}>{r.time} min</Text>
-                    <Flame size={13} color={C.ink3} style={{ marginLeft: 8 }} />
+                    <View style={styles.metaDot} />
+                    <Flame size={13} color={C.ink3} strokeWidth={2.2} />
                     <Text style={styles.railMeta}>{r.difficulty}</Text>
                   </View>
                   <View style={styles.miniMacros}>
@@ -231,11 +273,13 @@ const styles = StyleSheet.create({
   sqBtn: { borderRadius: R.sm, width: 50, height: 50 },
 
   tiles: { flexDirection: 'row', gap: 14, marginTop: 18 },
-  tile: { flex: 1, minHeight: 116, borderRadius: R.lg, padding: 18, justifyContent: 'space-between', overflow: 'hidden', backgroundColor: C.surface },
-  tileDark: { backgroundColor: C.ink },
-  tileIcoLight: { width: 44, height: 44, borderRadius: R.sm, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  tileTitleLight: { fontFamily: F.sansBold, fontSize: 17, color: C.white, letterSpacing: -0.2 },
-  tileSubLight: { fontFamily: F.sans, fontSize: 12.5, color: 'rgba(255,255,255,0.82)', marginTop: 2 },
+  tile: { flex: 1, minHeight: 132, borderRadius: R.lg, padding: 16, justifyContent: 'space-between', overflow: 'hidden', backgroundColor: C.surface },
+  tilePressed: { transform: [{ scale: 0.98 }] },
+  tileTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  tileIco: { width: 46, height: 46, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center' },
+  tileArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  tileTitle: { fontFamily: F.heavy, fontSize: 18, color: C.white, letterSpacing: -0.3 },
+  tileSub: { fontFamily: F.sansMed, fontSize: 12.5, color: 'rgba(255,255,255,0.86)', marginTop: 3 },
 
   secHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 12 },
   secTitle: { fontFamily: F.sansBold, fontSize: 18, color: C.ink, letterSpacing: -0.3 },
@@ -248,12 +292,18 @@ const styles = StyleSheet.create({
   lsMeta: { fontFamily: F.sansMed, fontSize: 12.5, color: C.ink3, marginTop: 3 },
   macroRow: { flexDirection: 'row', gap: 12 },
 
-  railCard: { width: 240, backgroundColor: C.surface, borderRadius: R.lg, overflow: 'hidden' },
+  railCard: { width: 236, backgroundColor: C.surface, borderRadius: R.lg, overflow: 'hidden', borderWidth: 1, borderColor: C.line },
+  railCover: { position: 'relative' },
+  ratingChip: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: R.pill, paddingVertical: 4, paddingHorizontal: 9, ...SHADOW.sm },
+  ratingTxt: { fontFamily: F.sansBold, fontSize: 12, color: C.ink, letterSpacing: -0.2 },
+  railHeart: { position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center', ...SHADOW.sm },
+  railHeartOn: { backgroundColor: C.green700 },
   railBody: { padding: 14 },
-  railName: { fontFamily: F.sansBold, fontSize: 16, color: C.ink },
-  railMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  railName: { fontFamily: F.sansBold, fontSize: 16, color: C.ink, letterSpacing: -0.2 },
+  railMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7 },
   railMeta: { fontFamily: F.sansMed, fontSize: 12.5, color: C.ink3 },
-  miniMacros: { flexDirection: 'row', gap: 12, marginTop: 11 },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: C.ink3, marginHorizontal: 3, opacity: 0.6 },
+  miniMacros: { flexDirection: 'row', gap: 12, marginTop: 12 },
   mini: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   miniDot: { width: 7, height: 7, borderRadius: 4 },
   miniTxt: { fontFamily: F.sansBold, fontSize: 11.5, color: C.ink2 },

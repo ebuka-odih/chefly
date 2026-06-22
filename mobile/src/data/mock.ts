@@ -162,6 +162,13 @@ export const NUTRITION: Record<string, Nutrition> = {
 export const emojiFor = (r: Recipe) => CATEGORY_EMOJI[r.category] || '🍽️';
 export const nutritionFor = (id: string): Nutrition => NUTRITION[id] || NUTRITION['jollof-rice'];
 
+// Community rating per recipe (stand-in for real reviews) — shown on suggestion cards.
+export const RATING: Record<string, number> = {
+  'jollof-rice': 4.8, 'shakshuka': 4.5, 'plantain-hash': 4.6, 'yam-porridge': 4.4,
+  'garden-salad': 4.6, 'chicken-grill': 4.7, 'tomato-fusilli': 4.7,
+};
+export const ratingFor = (id: string): number => RATING[id] ?? 4.6;
+
 // Per-ingredient emoji for the nutrition flower + ingredient rows.
 const ING_EMOJI: Record<string, string> = {
   rice: '🍚', tomato: '🍅', tomatoes: '🍅', pepper: '🌶️', onion: '🧅', onions: '🧅',
