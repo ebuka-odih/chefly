@@ -27,8 +27,8 @@ export function MacroBadge({ type = 'carbs', value, label }: { type?: MacroType;
 }
 
 const styles = StyleSheet.create({
-  badge: { flex: 1, alignItems: 'center', gap: 7, paddingVertical: 14, paddingHorizontal: 8, backgroundColor: C.surface2, borderRadius: R.md },
-  ico: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  val: { fontFamily: F.heavy, fontSize: 18, color: C.ink, letterSpacing: -0.4 },
-  label: { fontFamily: F.sansMed, fontSize: 12, color: C.ink3 },
+  badge: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 6, backgroundColor: C.surface2, borderRadius: R.lg },
+  ico: { width: 30, height: 30, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
+  val: { fontFamily: F.heavy, fontSize: 17, color: C.ink, letterSpacing: -0.4 },
+  label: { fontFamily: F.sansMed, fontSize: 11.5, color: C.ink3 },
 });

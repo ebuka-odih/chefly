@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Animated, Easing 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, SlidersHorizontal, Pencil, Sparkles, Bell, ChevronRight, X, Clock, Flame, Star, Heart, ArrowUpRight } from 'lucide-react-native';
-import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
+import { Search, SlidersHorizontal, Pencil, Sparkles, Bell, ChevronRight, X, Clock, Flame, Star, Heart } from 'lucide-react-native';
+import { C, F, R, SHADOW } from '@/theme/tokens';
 import { getRecipe, LAST_SCAN_ID, RECOMMENDED, nutritionFor, emojiFor, ratingFor } from '@/data/mock';
 import { AppHeader, IconBtn } from '@/components/AppHeader';
 import { DishImage } from '@/components/DishImage';
@@ -52,28 +52,31 @@ export default function Home() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <AppHeader
-        variant="home"
-        greeting="Hello, Chef 👋"
-        title="Let's cook something"
-        accent="good"
-        left={
-          <IconBtn dot>
-            <Bell size={20} color={C.ink} strokeWidth={2.2} />
-          </IconBtn>
-        }
-        right={
-          <Pressable onPress={() => router.push('/(tabs)/profile')} style={styles.avatar}>
-            <Text style={styles.avatarTxt}>C</Text>
-          </Pressable>
-        }
-      />
-
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: insets.bottom + 140 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 108 }}
       >
+        {/* header scrolls with the page (breaks out of the 20px gutter) */}
+        <View style={{ marginHorizontal: -20 }}>
+          <AppHeader
+            variant="home"
+            greeting="Hello, Chef 👋"
+            title="Let's cook something"
+            accent="good"
+            left={
+              <IconBtn dot>
+                <Bell size={20} color={C.ink} strokeWidth={2.2} />
+              </IconBtn>
+            }
+            right={
+              <Pressable onPress={() => router.push('/(tabs)/profile')} style={styles.avatar}>
+                <Text style={styles.avatarTxt}>C</Text>
+              </Pressable>
+            }
+          />
+        </View>
+
         {/* search */}
         <View style={styles.searchRow}>
           <Pressable style={styles.searchBar} onPress={() => router.push('/ingredients')}>
@@ -85,41 +88,17 @@ export default function Home() {
           </IconBtn>
         </View>
 
-        {/* action tiles */}
+        {/* quick actions — flat buttons, not cards */}
         <FadeUp delay={60}>
-          <View style={styles.tiles}>
-            <Pressable style={({ pressed }) => [styles.tile, SHADOW.card, pressed && styles.tilePressed]} onPress={() => router.push('/ingredients')}>
-              <LinearGradient colors={GRAD.warm} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-              <LinearGradient colors={['rgba(255,255,255,0.30)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.62 }} style={StyleSheet.absoluteFill} />
-              <View style={styles.tileTop}>
-                <View style={styles.tileIco}>
-                  <Pencil size={21} color={C.white} strokeWidth={2.4} />
-                </View>
-                <View style={styles.tileArrow}>
-                  <ArrowUpRight size={16} color={C.white} strokeWidth={2.6} />
-                </View>
-              </View>
-              <View>
-                <Text style={styles.tileTitle}>Type</Text>
-                <Text style={styles.tileSub}>Enter ingredients</Text>
-              </View>
+          <View style={styles.actions}>
+            <Pressable style={({ pressed }) => [styles.actionBtn, styles.actionType, pressed && styles.actionPressed]} onPress={() => router.push('/ingredients')}>
+              <Pencil size={19} color={C.white} strokeWidth={2.4} />
+              <Text style={styles.actionTxt}>Type</Text>
             </Pressable>
 
-            <Pressable style={({ pressed }) => [styles.tile, SHADOW.card, pressed && styles.tilePressed]} onPress={() => setShowSurprise(true)}>
-              <LinearGradient colors={GRAD.cooking} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-              <LinearGradient colors={['rgba(255,255,255,0.14)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.62 }} style={StyleSheet.absoluteFill} />
-              <View style={styles.tileTop}>
-                <View style={styles.tileIco}>
-                  <Sparkles size={21} color={C.white} strokeWidth={2.4} />
-                </View>
-                <View style={styles.tileArrow}>
-                  <ArrowUpRight size={16} color={C.white} strokeWidth={2.6} />
-                </View>
-              </View>
-              <View>
-                <Text style={styles.tileTitle}>Surprise</Text>
-                <Text style={styles.tileSub}>Random idea</Text>
-              </View>
+            <Pressable style={({ pressed }) => [styles.actionBtn, styles.actionSurprise, pressed && styles.actionPressed]} onPress={() => setShowSurprise(true)}>
+              <Sparkles size={19} color={C.white} strokeWidth={2.4} />
+              <Text style={styles.actionTxt}>Surprise</Text>
             </Pressable>
           </View>
         </FadeUp>
@@ -272,14 +251,12 @@ const styles = StyleSheet.create({
   searchPh: { fontFamily: F.sans, fontSize: 15, color: C.ink3 },
   sqBtn: { borderRadius: R.sm, width: 50, height: 50 },
 
-  tiles: { flexDirection: 'row', gap: 14, marginTop: 18 },
-  tile: { flex: 1, minHeight: 132, borderRadius: R.lg, padding: 16, justifyContent: 'space-between', overflow: 'hidden', backgroundColor: C.surface },
-  tilePressed: { transform: [{ scale: 0.98 }] },
-  tileTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  tileIco: { width: 46, height: 46, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center' },
-  tileArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  tileTitle: { fontFamily: F.heavy, fontSize: 18, color: C.white, letterSpacing: -0.3 },
-  tileSub: { fontFamily: F.sansMed, fontSize: 12.5, color: 'rgba(255,255,255,0.86)', marginTop: 3 },
+  actions: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 54, borderRadius: R.md },
+  actionType: { backgroundColor: C.green700 },
+  actionSurprise: { backgroundColor: C.forest },
+  actionTxt: { fontFamily: F.sansBold, fontSize: 15, color: C.white, letterSpacing: -0.2 },
+  actionPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
 
   secHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 12 },
   secTitle: { fontFamily: F.sansBold, fontSize: 18, color: C.ink, letterSpacing: -0.3 },
@@ -290,7 +267,7 @@ const styles = StyleSheet.create({
   lsThumb: { width: 56, height: 56, borderRadius: R.sm, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   lsName: { fontFamily: F.sansBold, fontSize: 16, color: C.ink },
   lsMeta: { fontFamily: F.sansMed, fontSize: 12.5, color: C.ink3, marginTop: 3 },
-  macroRow: { flexDirection: 'row', gap: 12 },
+  macroRow: { flexDirection: 'row', gap: 10 },
 
   railCard: { width: 236, backgroundColor: C.surface, borderRadius: R.lg, overflow: 'hidden', borderWidth: 1, borderColor: C.line },
   railCover: { position: 'relative' },

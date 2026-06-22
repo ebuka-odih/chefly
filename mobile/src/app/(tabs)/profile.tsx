@@ -1,9 +1,24 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChefHat, ChevronRight, Bell, Leaf, Sparkles, HelpCircle, LogOut, Pencil } from 'lucide-react-native';
-import { C, F, R, T, SHADOW } from '@/theme/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  ChefHat, ChevronRight, Bell, Sparkles, HelpCircle, LogOut, Pencil,
+  Shield, FileText, Trash2, Globe, Flame, Ban,
+} from 'lucide-react-native';
+import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
 import { PROFILE } from '@/data/mock';
+import { useMe, initialOf } from '@/lib/profileStore';
+
+type IconCmp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+const tasteIcon = (label: string): IconCmp => {
+  const l = label.toLowerCase();
+  if (l.includes('cuisine')) return Globe;
+  if (l.includes('spice')) return Flame;
+  if (l.includes('avoid')) return Ban;
+  return Sparkles;
+};
 
 function Toggle({ on, onPress }: { on: boolean; onPress: () => void }) {
   return (
@@ -13,58 +28,126 @@ function Toggle({ on, onPress }: { on: boolean; onPress: () => void }) {
   );
 }
 
-function Row({ icon, label, value, right, top }: { icon?: React.ReactNode; label: string; value?: string; right?: React.ReactNode; top?: boolean }) {
+function Row({
+  icon, label, right, top, onPress, danger,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  right?: React.ReactNode;
+  top?: boolean;
+  onPress?: () => void;
+  danger?: boolean;
+}) {
   return (
-    <View style={[styles.row, top && { borderTopWidth: 1, borderTopColor: C.line }]}>
-      {icon ? <View style={styles.rowIc}>{icon}</View> : null}
-      <Text style={[styles.rowLabel, { flex: 1 }]}>{label}</Text>
-      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
-      {right ?? <ChevronRight size={18} color={C.ink3} />}
-    </View>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.row, top && styles.rowDivider, pressed && !!onPress && { backgroundColor: C.surface2 }]}
+    >
+      {icon ? <View style={[styles.rowIc, danger && styles.rowIcDanger]}>{icon}</View> : null}
+      <Text style={[styles.rowLabel, { flex: 1 }, danger && { color: C.danger }]} numberOfLines={1}>
+        {label}
+      </Text>
+      {right ?? <ChevronRight size={18} color={danger ? C.danger : C.ink3} />}
+    </Pressable>
   );
 }
 
 export default function Profile() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
+  const me = useMe();
   const [notif, setNotif] = useState(true);
   const [watermark, setWatermark] = useState(false);
 
+  const taste = [
+    { label: 'Cuisine focus', value: me.cuisine },
+    { label: 'Spice level', value: me.spice },
+    { label: 'Avoid', value: me.avoid },
+  ];
+
   return (
     <ScrollView
-      contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 22, paddingBottom: insets.bottom + 110 }}
+      contentContainerStyle={{ paddingTop: insets.top + 18, paddingHorizontal: 22, paddingBottom: insets.bottom + 120 }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.head}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{PROFILE.initial}</Text></View>
-        <View style={{ flex: 1 }}>
-          <Text style={T.h2}>{PROFILE.name}</Text>
-          <Text style={[T.small, { marginTop: 2 }]}>{PROFILE.handle}</Text>
+      {/* profile hero */}
+      <View style={styles.hero}>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatar}>
+            <LinearGradient colors={GRAD.warm} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <Text style={styles.avatarText}>{initialOf(me.name)}</Text>
+          </View>
+          <Pressable style={styles.editBadge} hitSlop={6} onPress={() => router.push('/edit-profile')}>
+            <Pencil size={14} color={C.ink} strokeWidth={2.4} />
+          </Pressable>
         </View>
-        <Pressable style={styles.edit}><Pencil size={17} color={C.ink} /></Pressable>
+        <Text style={styles.name}>{me.name}</Text>
+        <Text style={styles.handle}>{me.handle}</Text>
+        <View style={styles.heroTag}>
+          <Text style={styles.heroTagTxt}>🍳 {me.cuisine} home cook</Text>
+        </View>
       </View>
 
+      {/* relaxed stat cards */}
       <View style={styles.stats}>
         <Stat value={`${PROFILE.stats.cooked}`} label="Cooked" />
         <Stat value={`${PROFILE.stats.saved}`} label="Saved" />
-        <Stat value={`${PROFILE.stats.streak}🔥`} label="Day streak" />
+        <Stat value={`${PROFILE.stats.streak} 🔥`} label="Day streak" />
       </View>
 
-      <Text style={styles.sectionTitle}>Your taste</Text>
+      {/* your taste */}
+      <View style={styles.tasteHead}>
+        <Text style={styles.sectionTitle}>Your taste</Text>
+        <Pressable hitSlop={8} onPress={() => router.push('/edit-profile')}>
+          <Text style={styles.editLink}>Edit</Text>
+        </Pressable>
+      </View>
       <View style={styles.card}>
-        {PROFILE.preferences.map((p, idx) => (
-          <Row key={p.label} label={p.label} value={p.value} top={idx > 0} />
-        ))}
+        {taste.map((p, idx) => {
+          const Icon = tasteIcon(p.label);
+          return (
+            <View key={p.label} style={[styles.tasteRow, idx > 0 && styles.rowDivider]}>
+              <View style={styles.rowIc}>
+                <Icon size={18} color={C.green700} strokeWidth={2.2} />
+              </View>
+              <Text style={styles.tasteLabel}>{p.label}</Text>
+              <View style={styles.valuePill}>
+                <Text style={styles.valuePillTxt}>{p.value}</Text>
+              </View>
+            </View>
+          );
+        })}
       </View>
 
       <Text style={styles.sectionTitle}>Settings</Text>
       <View style={styles.card}>
-        <Row icon={<Bell size={18} color={C.terracotta} />} label="Notifications" right={<Toggle on={notif} onPress={() => setNotif(!notif)} />} />
-        <Row icon={<Leaf size={18} color={C.terracotta} />} label="Dietary preferences" top />
-        <Row icon={<Sparkles size={18} color={C.terracotta} />} label="“Made with Chefly” watermark" top right={<Toggle on={watermark} onPress={() => setWatermark(!watermark)} />} />
-        <Row icon={<HelpCircle size={18} color={C.terracotta} />} label="Help & feedback" top />
+        <Row icon={<Bell size={18} color={C.green700} />} label="Notifications" right={<Toggle on={notif} onPress={() => setNotif(!notif)} />} />
+        <Row
+          icon={<Sparkles size={18} color={C.green700} />}
+          label="“Made with Chefly” watermark"
+          top
+          right={<Toggle on={watermark} onPress={() => setWatermark(!watermark)} />}
+        />
       </View>
 
-      <Pressable style={styles.signout}>
+      <Text style={styles.sectionTitle}>Support & legal</Text>
+      <View style={styles.card}>
+        <Row
+          icon={<HelpCircle size={18} color={C.green700} />}
+          label="Help & feedback"
+          onPress={() => Linking.openURL('mailto:hello@chefly.app?subject=Chefly%20feedback')}
+        />
+        <Row icon={<Shield size={18} color={C.green700} />} label="Privacy policy" top onPress={() => router.push('/privacy')} />
+        <Row icon={<FileText size={18} color={C.green700} />} label="Terms of service" top onPress={() => router.push('/terms')} />
+      </View>
+
+      <Text style={styles.sectionTitle}>Account</Text>
+      <View style={styles.card}>
+        <Row icon={<Trash2 size={18} color={C.danger} />} label="Delete account" danger onPress={() => router.push('/delete-account')} />
+      </View>
+
+      <Pressable style={styles.signout} onPress={() => router.replace('/onboarding')}>
         <LogOut size={18} color={C.danger} />
         <Text style={styles.signoutText}>Sign out</Text>
       </Pressable>
@@ -87,24 +170,47 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-  avatar: { width: 66, height: 66, borderRadius: 22, backgroundColor: C.sage, alignItems: 'center', justifyContent: 'center', ...SHADOW.sm },
-  avatarText: { fontFamily: F.heavy, fontSize: 26, color: C.white, letterSpacing: -0.5 },
-  edit: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center', ...SHADOW.sm },
-  stats: { flexDirection: 'row', gap: 12, marginTop: 26 },
-  stat: { flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: R.lg, paddingVertical: 22, paddingHorizontal: 8, alignItems: 'center', gap: 7, ...SHADOW.sm },
+  // hero
+  hero: { alignItems: 'center', marginTop: 4 },
+  avatarWrap: { width: 88, height: 88 },
+  avatar: { width: 88, height: 88, borderRadius: 44, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: C.surface, ...SHADOW.card },
+  avatarText: { fontFamily: F.heavy, fontSize: 32, color: C.white, letterSpacing: -0.5 },
+  editBadge: { position: 'absolute', right: -2, bottom: -2, width: 32, height: 32, borderRadius: 16, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center', ...SHADOW.sm },
+  name: { fontFamily: F.heavy, fontSize: 24, color: C.ink, letterSpacing: -0.6, marginTop: 14 },
+  handle: { fontFamily: F.sansMed, fontSize: 14, color: C.ink3, marginTop: 3 },
+  heroTag: { marginTop: 11, backgroundColor: C.saffronSoft, borderRadius: R.pill, paddingVertical: 7, paddingHorizontal: 14 },
+  heroTagTxt: { fontFamily: F.sansSemi, fontSize: 13, color: C.green800, letterSpacing: -0.1 },
+
+  // relaxed stat cards — airy, soft, rounder, generous padding
+  stats: { flexDirection: 'row', gap: 14, marginTop: 28 },
+  stat: { flex: 1, backgroundColor: C.surface, borderRadius: R.xl, paddingVertical: 28, paddingHorizontal: 10, alignItems: 'center', gap: 10, ...SHADOW.sm },
   statValue: { fontFamily: F.heavy, fontSize: 26, color: C.ink, letterSpacing: -0.5 },
   statLabel: { fontFamily: F.sansMed, fontSize: 12.5, color: C.ink3 },
-  sectionTitle: { fontFamily: F.sansBold, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', color: C.ink3, marginTop: 30, marginBottom: 12 },
-  card: { backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, borderRadius: R.md, overflow: 'hidden', ...SHADOW.sm },
+
+  // sections
+  sectionTitle: { fontFamily: F.sansBold, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase', color: C.ink3, marginTop: 28, marginBottom: 12 },
+  tasteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 28, marginBottom: 12 },
+  editLink: { fontFamily: F.sansBold, fontSize: 13, color: C.green700 },
+  card: { backgroundColor: C.surface, borderRadius: R.lg, overflow: 'hidden', ...SHADOW.sm },
+
+  // generic / settings rows
   row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 15, paddingHorizontal: 16 },
-  rowIc: { width: 34, height: 34, borderRadius: 11, backgroundColor: C.cream2, alignItems: 'center', justifyContent: 'center' },
+  rowDivider: { borderTopWidth: 1, borderTopColor: C.line },
+  rowIc: { width: 34, height: 34, borderRadius: R.pill, backgroundColor: C.saffronSoft, alignItems: 'center', justifyContent: 'center' },
+  rowIcDanger: { backgroundColor: 'rgba(239,83,80,0.12)' },
   rowLabel: { fontFamily: F.sansMed, fontSize: 14.5, color: C.ink },
-  rowValue: { fontFamily: F.sans, fontSize: 14, color: C.ink2 },
+
+  // taste rows
+  tasteRow: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 15, paddingHorizontal: 16 },
+  tasteLabel: { flex: 1, fontFamily: F.sansSemi, fontSize: 14.5, color: C.ink },
+  valuePill: { backgroundColor: C.saffronSoft, borderRadius: R.pill, paddingVertical: 6, paddingHorizontal: 13 },
+  valuePillTxt: { fontFamily: F.sansBold, fontSize: 13, color: C.green800, letterSpacing: -0.1 },
+
   tgl: { width: 46, height: 28, borderRadius: 14, backgroundColor: C.line2, justifyContent: 'center', paddingHorizontal: 3 },
-  tglOn: { backgroundColor: C.sage },
+  tglOn: { backgroundColor: C.green700 },
   knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: C.white, ...SHADOW.sm },
-  signout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 26, paddingVertical: 15, borderRadius: R.md, borderWidth: 1, borderColor: C.line2 },
+
+  signout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 24, paddingVertical: 15, borderRadius: R.md, borderWidth: 1, borderColor: C.line2 },
   signoutText: { fontFamily: F.sansSemi, fontSize: 15, color: C.danger },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 22 },
   footerText: { fontFamily: F.sans, fontSize: 13, color: C.ink3 },

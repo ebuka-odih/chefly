@@ -47,6 +47,10 @@ export default function RootLayout() {
           <Stack.Screen name="suggestions" />
           <Stack.Screen name="recipe/[id]" />
           <Stack.Screen name="cooking/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="privacy" />
+          <Stack.Screen name="terms" />
+          <Stack.Screen name="delete-account" />
+          <Stack.Screen name="edit-profile" />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

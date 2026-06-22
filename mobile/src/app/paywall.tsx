@@ -61,6 +61,9 @@ export default function Paywall() {
           ))}
         </View>
 
+      </ScrollView>
+
+      <View style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}>
         <View style={styles.plans}>
           <Pressable onPress={() => setPlan('yearly')} style={[styles.plan, plan === 'yearly' && styles.planOn]}>
             <View style={styles.bestBadge}>
@@ -97,9 +100,7 @@ export default function Paywall() {
             </View>
           </Pressable>
         </View>
-      </ScrollView>
 
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}>
         <Button label="Start 7-day free trial" Icon={Sparkles} onPress={enter} large />
         <Text style={styles.terms}>
           {plan === 'yearly' ? '7 days free, then $34.99/year' : '7 days free, then $6.99/month'} · Cancel anytime
@@ -122,12 +123,12 @@ const styles = StyleSheet.create({
   proPillText: { fontFamily: F.sansBold, fontSize: 12, letterSpacing: 1, color: '#F4ECDE', textTransform: 'uppercase' },
   title: { fontFamily: F.serifBold, fontSize: 33, color: C.ink, marginTop: 14, lineHeight: 36, letterSpacing: -0.4, textAlign: 'center' },
   subtitle: { fontFamily: F.sans, fontSize: 15, color: C.ink2, marginTop: 10, lineHeight: 22, textAlign: 'center', paddingHorizontal: 8 },
-  perks: { marginTop: 26, gap: 13 },
+  perks: { marginTop: 20, gap: 12 },
   perk: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   perkIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
   perkLabel: { fontFamily: F.sansSemi, fontSize: 15.5, color: C.ink },
   perkHint: { fontFamily: F.sans, fontSize: 13, color: C.ink3, marginTop: 1 },
-  plans: { marginTop: 28, gap: 12 },
+  plans: { gap: 10, marginBottom: 2 },
   plan: { backgroundColor: C.paper, borderWidth: 1.5, borderColor: C.line2, borderRadius: R.md, padding: 16 },
   planOn: { borderColor: C.terracotta, backgroundColor: C.saffronSoft, ...SHADOW.sm },
   bestBadge: { alignSelf: 'flex-start', backgroundColor: C.terracotta, borderRadius: R.pill, paddingVertical: 4, paddingHorizontal: 10, marginBottom: 11 },
