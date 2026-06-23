@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Chefly",
-    "slug": "mobile",
+    "slug": "chefly",
     "owner": "eecollective",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -49,7 +49,7 @@
       "publicApiBaseUrl": "https://chefly.eecollective.ink",
       "router": {},
       "eas": {
-        "projectId": "98ac6a9f-fa85-4a90-9beb-a75605f6640f"
+        "projectId": "13ab5d53-13e8-49f0-82de-c4550c908414"
       }
     }
   }
