@@ -68,7 +68,7 @@ export default function Profile() {
 
   return (
     <ScrollView
-      contentContainerStyle={{ paddingTop: insets.top + 18, paddingHorizontal: 22, paddingBottom: insets.bottom + 120 }}
+      contentContainerStyle={{ paddingTop: insets.top + 18, paddingHorizontal: 22, paddingBottom: insets.bottom + 28 }}
       showsVerticalScrollIndicator={false}
     >
       {/* profile hero */}

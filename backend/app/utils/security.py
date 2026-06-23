@@ -25,9 +25,23 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+def create_magic_link_token(email: str, expires_delta: Optional[timedelta] = None):
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.MAGIC_LINK_EXPIRE_MINUTES))
+    payload = {"sub": email, "type": "magic_link", "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def verify_magic_link_token(token: str) -> str:
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    if payload.get("type") != "magic_link":
+        raise JWTError("Invalid token type")
+    email = payload.get("sub")
+    if not email:
+        raise JWTError("Missing subject")
+    return email
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -37,6 +51,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        token_type = payload.get("type")
+        if token_type not in (None, "access"):
+            raise credentials_exception
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception

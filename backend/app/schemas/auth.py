@@ -25,3 +25,16 @@ class UserResponse(UserBase):
     
     class Config:
         from_attributes = True
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+class MagicLinkVerify(BaseModel):
+    token: str
+
+class MagicLinkSent(BaseModel):
+    ok: bool = True
+    message: str
+
+class AuthSession(Token):
+    user: UserResponse

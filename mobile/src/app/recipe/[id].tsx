@@ -19,7 +19,7 @@ function FadeUp({ delay = 0, children }: { delay?: number; children: React.React
     Animated.timing(v, { toValue: 1, duration: 420, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [v, delay]);
   return (
-    <Animated.View style={{ opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
+    <Animated.View style={{ opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }}>
       {children}
     </Animated.View>
   );
@@ -57,28 +57,34 @@ export default function RecipeDetail() {
           <NutritionFlower data={breakdown} center={emoji} size={flowerSize} />
         </View>
 
-        <Text style={styles.title}>{recipe.name}</Text>
-        <View style={styles.metaRow}>
-          <View style={[styles.tag, styles.tagGreen]}><Flame size={13} color={C.green800} /><Text style={[styles.tagTxt, { color: C.green800 }]}>{n.calories} kcal</Text></View>
-          <View style={styles.tag}><Clock size={13} color={C.ink2} /><Text style={styles.tagTxt}>{recipe.time} min</Text></View>
-          <View style={styles.tag}><ChefHat size={13} color={C.ink2} /><Text style={styles.tagTxt}>{recipe.difficulty}</Text></View>
-        </View>
+        <FadeUp delay={40}>
+          <Text style={styles.title}>{recipe.name}</Text>
+          <View style={styles.metaRow}>
+            <View style={[styles.tag, styles.tagGreen]}><Flame size={13} color={C.green800} /><Text style={[styles.tagTxt, { color: C.green800 }]}>{n.calories} kcal</Text></View>
+            <View style={styles.tag}><Clock size={13} color={C.ink2} /><Text style={styles.tagTxt}>{recipe.time} min</Text></View>
+            <View style={styles.tag}><ChefHat size={13} color={C.ink2} /><Text style={styles.tagTxt}>{recipe.difficulty}</Text></View>
+          </View>
+        </FadeUp>
 
         {/* macro summary */}
-        <View style={styles.macroRow}>
-          <MacroBadge type="carbs" value={`${n.carbs}g`} />
-          <MacroBadge type="fats" value={`${n.fats}g`} />
-          <MacroBadge type="protein" value={`${n.protein}g`} />
-        </View>
+        <FadeUp delay={100}>
+          <View style={styles.macroRow}>
+            <MacroBadge type="carbs" value={`${n.carbs}g`} />
+            <MacroBadge type="fats" value={`${n.fats}g`} />
+            <MacroBadge type="protein" value={`${n.protein}g`} />
+          </View>
+        </FadeUp>
 
         {/* ingredient breakdown */}
-        <View style={styles.secHead}>
-          <Text style={styles.secTitle}>Ingredients</Text>
-          <Text style={styles.secMeta}>{TOTAL_WEIGHT} g</Text>
-        </View>
+        <FadeUp delay={150}>
+          <View style={styles.secHead}>
+            <Text style={styles.secTitle}>Ingredients</Text>
+            <Text style={styles.secMeta}>{TOTAL_WEIGHT} g</Text>
+          </View>
+        </FadeUp>
         <View style={{ gap: 10 }}>
           {breakdown.map((b, i) => (
-            <FadeUp key={b.label} delay={i * 60}>
+            <FadeUp key={b.label} delay={190 + i * 45}>
               <View style={[styles.ingRow, SHADOW.sm]}>
                 <View style={styles.ingThumb}>
                   <LinearGradient colors={['#DCEDC8', '#F1F7E8']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
@@ -99,37 +105,41 @@ export default function RecipeDetail() {
         </View>
 
         {/* shopping */}
-        <View style={styles.secHead}>
-          <Text style={styles.secTitle}>You&apos;ll also need</Text>
-        </View>
-        <View style={styles.chipsWrap}>
-          {recipe.have.map((h) => (
-            <View key={h.name} style={[styles.smChip, styles.smChipOn]}>
-              <Check size={13} color={C.white} strokeWidth={3} />
-              <Text style={[styles.smChipTxt, { color: C.white }]}>{h.name}</Text>
-            </View>
-          ))}
-          {recipe.need.map((nn) => (
-            <View key={nn.name} style={styles.smChip}>
-              <ShoppingBasket size={13} color={C.ink2} />
-              <Text style={styles.smChipTxt}>{nn.name}</Text>
-            </View>
-          ))}
-        </View>
+        <FadeUp delay={230}>
+          <View style={styles.secHead}>
+            <Text style={styles.secTitle}>You&apos;ll also need</Text>
+          </View>
+          <View style={styles.chipsWrap}>
+            {recipe.have.map((h) => (
+              <View key={h.name} style={[styles.smChip, styles.smChipOn]}>
+                <Check size={13} color={C.white} strokeWidth={3} />
+                <Text style={[styles.smChipTxt, { color: C.white }]}>{h.name}</Text>
+              </View>
+            ))}
+            {recipe.need.map((nn) => (
+              <View key={nn.name} style={styles.smChip}>
+                <ShoppingBasket size={13} color={C.ink2} />
+                <Text style={styles.smChipTxt}>{nn.name}</Text>
+              </View>
+            ))}
+          </View>
+        </FadeUp>
 
         {/* steps */}
-        <View style={styles.secHead}>
-          <Text style={styles.secTitle}>Steps</Text>
-          <Text style={styles.secMeta}>{recipe.steps.length} steps</Text>
-        </View>
-        <View style={{ gap: 12 }}>
-          {recipe.steps.map((s, i) => (
-            <View key={i} style={styles.step}>
-              <View style={styles.stepNum}><Text style={styles.stepNumTxt}>{i + 1}</Text></View>
-              <Text style={styles.stepText}>{s}</Text>
-            </View>
-          ))}
-        </View>
+        <FadeUp delay={280}>
+          <View style={styles.secHead}>
+            <Text style={styles.secTitle}>Steps</Text>
+            <Text style={styles.secMeta}>{recipe.steps.length} steps</Text>
+          </View>
+          <View style={{ gap: 12 }}>
+            {recipe.steps.map((s, i) => (
+              <View key={i} style={styles.step}>
+                <View style={styles.stepNum}><Text style={styles.stepNumTxt}>{i + 1}</Text></View>
+                <Text style={styles.stepText}>{s}</Text>
+              </View>
+            ))}
+          </View>
+        </FadeUp>
       </ScrollView>
 
       {/* sticky CTA */}

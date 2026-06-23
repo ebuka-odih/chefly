@@ -45,7 +45,7 @@ export default function RootLayout() {
           <Stack.Screen name="camera" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="ingredients" />
           <Stack.Screen name="suggestions" />
-          <Stack.Screen name="recipe/[id]" />
+          <Stack.Screen name="recipe/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="cooking/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="privacy" />
           <Stack.Screen name="terms" />

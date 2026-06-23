@@ -39,6 +39,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "publicApiBaseUrl": "https://chefly.eecollective.ink"
     }
   }
 }

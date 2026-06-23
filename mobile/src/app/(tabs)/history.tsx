@@ -12,7 +12,7 @@ export default function History() {
 
   return (
     <ScrollView
-      contentContainerStyle={{ paddingTop: insets.top + 14, paddingHorizontal: 22, paddingBottom: insets.bottom + 110 }}
+      contentContainerStyle={{ paddingTop: insets.top + 14, paddingHorizontal: 22, paddingBottom: insets.bottom + 28 }}
       showsVerticalScrollIndicator={false}
     >
       <Text style={T.eyebrow}>Your kitchen</Text>

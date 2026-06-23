@@ -100,7 +100,12 @@ export default function Questions() {
     if (!q.multi && !last) setTimeout(() => setStep((s) => s + 1), 220);
   };
 
-  const onBack = () => (step === 0 ? router.back() : setStep(step - 1));
+  const onBack = () => {
+    if (step > 0) { setStep(step - 1); return; }
+    // entered via replace() from auth — fall back instead of a no-op GO_BACK
+    if (router.canGoBack()) router.back();
+    else router.replace('/auth');
+  };
   const onNext = () => (last ? router.replace('/paywall') : setStep(step + 1));
 
   return (

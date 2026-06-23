@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,29 +7,69 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, ArrowRight, ArrowLeft, MailCheck } from 'lucide-react-native';
-import { C, F, R, GRAD, SHADOW, T } from '@/theme/tokens';
+import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
 import { Button } from '@/components/Button';
+import { requestMagicLink, verifyMagicLink } from '@/lib/authApi';
+import { setSession } from '@/lib/session';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Auth() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ token?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const handledToken = useRef<string | null>(null);
 
   const valid = EMAIL_RE.test(email.trim());
+  const linkToken = typeof params.token === 'string' ? params.token : '';
 
-  // No backend yet — sending the "magic link" just advances the UI.
-  const sendLink = () => {
-    if (!valid) return;
+  // Auth is reached via replace() from onboarding, so the stack is often empty —
+  // fall back to onboarding instead of a no-op GO_BACK that warns.
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/onboarding'));
+
+  useEffect(() => {
+    if (!linkToken || handledToken.current === linkToken) return;
+    handledToken.current = linkToken;
+    setBusy(true);
     setSent(true);
+    setError(null);
+
+    verifyMagicLink(linkToken)
+      .then((session) => {
+        setSession(session);
+        router.replace('/questions');
+      })
+      .catch((err) => {
+        handledToken.current = null;
+        setSent(false);
+        setError(err instanceof Error ? err.message : 'We could not verify that link.');
+      })
+      .finally(() => setBusy(false));
+  }, [linkToken, router]);
+
+  const sendLink = async () => {
+    if (!valid || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await requestMagicLink(email.trim().toLowerCase());
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'We could not send that link.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -44,7 +84,7 @@ export default function Auth() {
               <ArrowLeft size={20} color={C.ink} />
             </Pressable>
           ) : (
-            <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
+            <Pressable onPress={goBack} hitSlop={8} style={styles.backBtn}>
               <ArrowLeft size={20} color={C.ink} />
             </Pressable>
           )}
@@ -56,20 +96,26 @@ export default function Auth() {
           <View style={styles.body}>
             <View style={[styles.mark, SHADOW.cta]}>
               <LinearGradient colors={GRAD.warm} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-              <MailCheck size={40} color={C.white} />
+              {busy ? <ActivityIndicator size="small" color={C.white} /> : <MailCheck size={40} color={C.white} />}
             </View>
-            <Text style={styles.eyebrow}>Check your inbox</Text>
-            <Text style={styles.title}>Tap the link{'\n'}we just sent</Text>
+            <Text style={styles.eyebrow}>{busy ? 'Signing you in' : 'Check your inbox'}</Text>
+            <Text style={styles.title}>{busy ? `Verifying your\nmagic link` : `Tap the link\nwe just sent`}</Text>
             <Text style={styles.desc}>
-              We emailed a magic link to{'\n'}
-              <Text style={styles.emailStrong}>{email.trim()}</Text>
-              {'\n'}Open it on this device to sign in — no password needed.
+              {busy ? (
+                'Hold on while we finish signing you in.'
+              ) : (
+                <>
+                  We emailed a magic link to{'\n'}
+                  <Text style={styles.emailStrong}>{email.trim()}</Text>
+                  {'\n'}Open it on this device to sign in — no password needed.
+                </>
+              )}
             </Text>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <View style={styles.bottom}>
-              {/* No backend yet — "opening the link" continues the flow. */}
-              <Button label="I opened the link" IconRight={ArrowRight} onPress={() => router.replace('/questions')} large />
-              <Pressable onPress={() => setSent(false)} hitSlop={8} style={styles.textBtn}>
+              <Button label={busy ? 'Waiting for link…' : 'Back to email entry'} IconRight={busy ? undefined : ArrowRight} onPress={() => setSent(false)} disabled={busy} large />
+              <Pressable onPress={() => setSent(false)} hitSlop={8} style={styles.textBtn} disabled={busy}>
                 <Text style={styles.textBtnLabel}>Use a different email</Text>
               </Pressable>
             </View>
@@ -85,6 +131,7 @@ export default function Auth() {
             <Text style={styles.desc}>
               Enter your email and we&apos;ll send a magic link to sign you in. No passwords to remember.
             </Text>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <Pressable style={styles.field} onPress={() => inputRef.current?.focus()}>
               <Mail size={19} color={C.ink3} />
@@ -106,7 +153,7 @@ export default function Auth() {
             </Pressable>
 
             <View style={styles.bottom}>
-              <Button label="Send magic link" IconRight={ArrowRight} onPress={sendLink} disabled={!valid} large />
+              <Button label={busy ? 'Sending…' : 'Send magic link'} IconRight={busy ? undefined : ArrowRight} onPress={sendLink} disabled={!valid || busy} large />
               <Text style={styles.legal}>
                 By continuing you agree to our Terms & Privacy Policy.
               </Text>
@@ -148,4 +195,5 @@ const styles = StyleSheet.create({
   legal: { fontFamily: F.sans, fontSize: 12.5, color: C.ink3, textAlign: 'center', lineHeight: 18 },
   textBtn: { alignItems: 'center', paddingVertical: 4 },
   textBtnLabel: { fontFamily: F.sansSemi, fontSize: 14.5, color: C.terracotta },
+  error: { fontFamily: F.sansMed, fontSize: 14, color: C.danger, marginTop: 12, lineHeight: 20 },
 });

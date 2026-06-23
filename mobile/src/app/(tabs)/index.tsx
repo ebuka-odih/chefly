@@ -3,15 +3,23 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Modal, Animated, Easing 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, SlidersHorizontal, Pencil, Sparkles, Bell, ChevronRight, X, Clock, Flame, Star, Heart } from 'lucide-react-native';
+import { Pencil, Sparkles, Bell, ChevronRight, X, Clock, Flame, Star, Heart, Sun, Sunrise, Moon, ArrowRight } from 'lucide-react-native';
 import { C, F, R, SHADOW } from '@/theme/tokens';
 import { getRecipe, LAST_SCAN_ID, RECOMMENDED, nutritionFor, emojiFor, ratingFor } from '@/data/mock';
+import { getDayContext } from '@/lib/time';
 import { AppHeader, IconBtn } from '@/components/AppHeader';
 import { DishImage } from '@/components/DishImage';
 import { MacroBadge } from '@/components/MacroBadge';
 
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 const FOOD_TYPES = ['Rice', 'Soup', 'Pasta', 'Salad', 'Grilled', 'Fried'];
+
+// Which recipe to surface for the current meal moment.
+const SUGGEST_BY_MEAL: Record<string, string> = {
+  Breakfast: 'shakshuka', Lunch: 'yam-porridge', Snack: 'garden-salad', Dinner: 'jollof-rice',
+};
+const periodIcon = (period: string, night: boolean) => (night ? Moon : period === 'morning' ? Sunrise : Sun);
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Fade-up entrance helper (mirrors the web .stagger / .fade-in-up).
 function FadeUp({ delay = 0, children, style }: { delay?: number; children: React.ReactNode; style?: any }) {
@@ -41,6 +49,17 @@ export default function Home() {
       return next;
     });
 
+  // live-ish clock so the greeting + suggestion track the time of day
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  const ctx = getDayContext(now);
+  const TimeIcon = periodIcon(ctx.period, ctx.night);
+  const suggestion = getRecipe(SUGGEST_BY_MEAL[ctx.meal] ?? 'jollof-rice');
+  const suggestionN = nutritionFor(suggestion.id);
+
   const hero = getRecipe(LAST_SCAN_ID);
   const heroN = nutritionFor(hero.id);
   const rail = RECOMMENDED.map((id) => getRecipe(id));
@@ -55,15 +74,14 @@ export default function Home() {
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 108 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 28 }}
       >
         {/* header scrolls with the page (breaks out of the 20px gutter) */}
         <View style={{ marginHorizontal: -20 }}>
           <AppHeader
             variant="home"
-            greeting="Hello, Chef 👋"
-            title="Let's cook something"
-            accent="good"
+            greeting={`${ctx.greeting}, Chef`}
+            title={ctx.meal === 'Snack' ? 'Fancy a snack?' : `What's for ${ctx.meal.toLowerCase()}?`}
             left={
               <IconBtn dot>
                 <Bell size={20} color={C.ink} strokeWidth={2.2} />
@@ -77,38 +95,60 @@ export default function Home() {
           />
         </View>
 
-        {/* search */}
-        <View style={styles.searchRow}>
-          <Pressable style={styles.searchBar} onPress={() => router.push('/ingredients')}>
-            <Search size={18} color={C.ink3} strokeWidth={2.2} />
-            <Text style={styles.searchPh}>Search recipes…</Text>
+        {/* time-aware suggestion — what to cook right now */}
+        <FadeUp delay={40}>
+          <Pressable
+            style={({ pressed }) => [styles.nowCard, SHADOW.card, pressed && { transform: [{ scale: 0.99 }] }]}
+            onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: suggestion.id } })}
+          >
+            <LinearGradient colors={['#EAF3DE', '#F1F7E8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <View style={styles.nowTop}>
+              <View style={styles.nowTime}>
+                <TimeIcon size={14} color={C.green700} strokeWidth={2.4} />
+                <Text style={styles.nowTimeTxt}>{cap(ctx.period)} · {ctx.time}</Text>
+              </View>
+              <Text style={styles.nowKicker}>Picked for you</Text>
+            </View>
+            <View style={styles.nowBody}>
+              <View style={styles.nowThumb}>
+                <DishImage category={suggestion.category} height={62} radius={0} emojiSize={34} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.nowEyebrow}>{ctx.meal} idea</Text>
+                <Text style={styles.nowName} numberOfLines={1}>{suggestion.name}</Text>
+                <Text style={styles.nowMeta}>{suggestionN.calories} kcal · {suggestion.time} min</Text>
+              </View>
+              <View style={styles.nowGo}>
+                <ArrowRight size={18} color={C.white} strokeWidth={2.5} />
+              </View>
+            </View>
           </Pressable>
-          <IconBtn onPress={() => setShowSurprise(true)} style={styles.sqBtn}>
-            <SlidersHorizontal size={19} color={C.ink} strokeWidth={2.2} />
-          </IconBtn>
-        </View>
+        </FadeUp>
 
-        {/* quick actions — flat buttons, not cards */}
-        <FadeUp delay={60}>
+        {/* start your own way */}
+        <FadeUp delay={90}>
+          <Text style={styles.startLabel}>Or start your own</Text>
           <View style={styles.actions}>
             <Pressable style={({ pressed }) => [styles.actionBtn, styles.actionType, pressed && styles.actionPressed]} onPress={() => router.push('/ingredients')}>
-              <Pencil size={19} color={C.white} strokeWidth={2.4} />
-              <Text style={styles.actionTxt}>Type</Text>
+              <Pencil size={18} color={C.white} strokeWidth={2.4} />
+              <Text style={styles.actionTxt}>Type ingredients</Text>
             </Pressable>
 
             <Pressable style={({ pressed }) => [styles.actionBtn, styles.actionSurprise, pressed && styles.actionPressed]} onPress={() => setShowSurprise(true)}>
-              <Sparkles size={19} color={C.white} strokeWidth={2.4} />
-              <Text style={styles.actionTxt}>Surprise</Text>
+              <Sparkles size={18} color={C.white} strokeWidth={2.4} />
+              <Text style={styles.actionTxt}>Surprise me</Text>
             </Pressable>
           </View>
         </FadeUp>
 
         {/* last scan */}
-        <View style={styles.secHead}>
-          <Text style={styles.secTitle}>Last scan</Text>
-          <Pressable onPress={() => router.push('/(tabs)/history')} hitSlop={8}><Text style={styles.seeAll}>See all</Text></Pressable>
-        </View>
-        <FadeUp delay={120}>
+        <FadeUp delay={140}>
+          <View style={styles.secHead}>
+            <Text style={styles.secTitle}>Last scan</Text>
+            <Pressable onPress={() => router.push('/(tabs)/history')} hitSlop={8}><Text style={styles.seeAll}>See all</Text></Pressable>
+          </View>
+        </FadeUp>
+        <FadeUp delay={175}>
           <Pressable style={[styles.card, SHADOW.card]} onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: hero.id } })}>
             <View style={styles.lsTop}>
               <View style={styles.lsThumb}>
@@ -130,10 +170,13 @@ export default function Home() {
         </FadeUp>
 
         {/* recommended */}
-        <View style={styles.secHead}>
-          <Text style={styles.secTitle}>Recommended</Text>
-          <Pressable onPress={() => router.push('/(tabs)/saved')} hitSlop={8}><Text style={styles.seeAll}>See all</Text></Pressable>
-        </View>
+        <FadeUp delay={215}>
+          <View style={styles.secHead}>
+            <Text style={styles.secTitle}>Recommended</Text>
+            <Pressable onPress={() => router.push('/(tabs)/saved')} hitSlop={8}><Text style={styles.seeAll}>See all</Text></Pressable>
+          </View>
+        </FadeUp>
+        <FadeUp delay={245}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -184,6 +227,7 @@ export default function Home() {
             );
           })}
         </ScrollView>
+        </FadeUp>
       </ScrollView>
 
       {/* Surprise sheet */}
@@ -246,16 +290,25 @@ const styles = StyleSheet.create({
   avatar: { width: 46, height: 46, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: C.green700, borderWidth: 2, borderColor: C.surface, ...SHADOW.sm },
   avatarTxt: { fontFamily: F.heavy, fontSize: 16, color: C.white },
 
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 50, borderRadius: R.pill, backgroundColor: C.surface, paddingHorizontal: 18, ...SHADOW.sm },
-  searchPh: { fontFamily: F.sans, fontSize: 15, color: C.ink3 },
-  sqBtn: { borderRadius: R.sm, width: 50, height: 50 },
+  // time-aware "what to cook now" card
+  nowCard: { borderRadius: R.lg, overflow: 'hidden', padding: 16, marginTop: 10, borderWidth: 1, borderColor: C.line },
+  nowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  nowTime: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: R.pill, paddingVertical: 5, paddingHorizontal: 11 },
+  nowTimeTxt: { fontFamily: F.sansBold, fontSize: 12, color: C.green800, letterSpacing: -0.1 },
+  nowKicker: { fontFamily: F.sansSemi, fontSize: 12, color: C.green700 },
+  nowBody: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14 },
+  nowThumb: { width: 62, height: 62, borderRadius: R.md, overflow: 'hidden' },
+  nowEyebrow: { fontFamily: F.sansBold, fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', color: C.green700 },
+  nowName: { fontFamily: F.heavy, fontSize: 18, color: C.ink, letterSpacing: -0.4, marginTop: 3 },
+  nowMeta: { fontFamily: F.sansMed, fontSize: 12.5, color: C.ink2, marginTop: 3 },
+  nowGo: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.green700, alignItems: 'center', justifyContent: 'center', ...SHADOW.sm },
 
-  actions: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 54, borderRadius: R.md },
+  startLabel: { fontFamily: F.sansSemi, fontSize: 13, color: C.ink3, marginTop: 22, marginBottom: 10 },
+  actions: { flexDirection: 'row', gap: 12 },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 54, borderRadius: R.md, paddingHorizontal: 6 },
   actionType: { backgroundColor: C.green700 },
   actionSurprise: { backgroundColor: C.forest },
-  actionTxt: { fontFamily: F.sansBold, fontSize: 15, color: C.white, letterSpacing: -0.2 },
+  actionTxt: { fontFamily: F.sansBold, fontSize: 14.5, color: C.white, letterSpacing: -0.2 },
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
 
   secHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 12 },

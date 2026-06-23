@@ -46,7 +46,7 @@ export function NutritionFlower({ data = [], center = '🥗', size = 280 }: { da
                 rx={46}
                 ry={68}
                 fill="url(#bloom)"
-                opacity={0.9}
+                opacity={0.4}
                 rotation={ang + 90}
                 originX={px}
                 originY={py}
