@@ -8,11 +8,11 @@ pydantic-settings
 email-validator
 python-multipart
 openai
-python-dotenv
-alembic
 requests
+python-dotenv
 python-jose[cryptography]
 passlib[argon2]
 argon2-cffi
+alembic
 google-generativeai
 pillow

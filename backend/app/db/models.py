@@ -1,8 +1,12 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from app.db.database import Base
 import uuid
+
+# Use real JSONB on Postgres (the production DB), but fall back to generic JSON
+# on SQLite so the app can also boot for local development / tests.
+JSONBType = JSONB().with_variant(JSON(), "sqlite")
 
 class User(Base):
     __tablename__ = "users"
@@ -18,7 +22,7 @@ class IngredientSnapshot(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    ingredients = Column(JSONB)
+    ingredients = Column(JSONBType)
     image_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -29,7 +33,7 @@ class Recipe(Base):
     name = Column(String)
     description = Column(String)
     image_url = Column(String, nullable=True)
-    payload = Column(JSONB)
+    payload = Column(JSONBType)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class UserSavedRecipe(Base):
@@ -45,6 +49,6 @@ class UserHistory(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    ingredients = Column(JSONB)
-    recipe = Column(JSONB)
+    ingredients = Column(JSONBType)
+    recipe = Column(JSONBType)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
