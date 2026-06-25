@@ -1,7 +1,9 @@
 import concurrent.futures
 from typing import List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -11,7 +13,8 @@ from app.schemas.recipes import (
     RecipeResponse,
     SaveRecipeRequest,
     RecipePreferences,
-    RecipeBase,
+    SavedRecipeResponse,
+    SavedRecipeUpdate,
     VisualizeStepsRequest,
 )
 from app.services.ai_recipes import generate_recipes_from_ingredients
@@ -35,12 +38,42 @@ def suggest_recipes(request: RecipeRequest):
     return {"recipes": recipes}
 
 
-@router.post("/save", response_model=RecipeBase)
+def _saved_recipe_response(recipe: Recipe) -> SavedRecipeResponse:
+    payload = recipe.payload or {}
+    return SavedRecipeResponse(id=payload.get("client_id") or str(recipe.id), **payload)
+
+
+def _saved_recipe_query(db: Session, user_id, recipe_id: str):
+    filters = [Recipe.payload["client_id"].as_string() == recipe_id]
+    try:
+        filters.append(Recipe.id == UUID(recipe_id))
+    except ValueError:
+        pass
+
+    return db.query(Recipe).join(UserSavedRecipe).filter(
+        UserSavedRecipe.user_id == user_id,
+        or_(*filters),
+    )
+
+
+@router.post("/save", response_model=SavedRecipeResponse)
 def save_recipe(
     recipe_data: SaveRecipeRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    existing = None
+    if recipe_data.client_id:
+        existing = _saved_recipe_query(db, current_user.id, recipe_data.client_id).first()
+    if not existing:
+        existing = db.query(Recipe).join(UserSavedRecipe).filter(
+            UserSavedRecipe.user_id == current_user.id,
+            Recipe.name == recipe_data.name,
+            Recipe.description == recipe_data.description,
+        ).first()
+    if existing:
+        return _saved_recipe_response(existing)
+
     new_recipe = Recipe(
         name=recipe_data.name,
         description=recipe_data.description,
@@ -54,11 +87,12 @@ def save_recipe(
     user_saved = UserSavedRecipe(user_id=current_user.id, recipe_id=new_recipe.id)
     db.add(user_saved)
     db.commit()
+    db.refresh(new_recipe)
 
-    return recipe_data
+    return _saved_recipe_response(new_recipe)
 
 
-@router.get("/saved", response_model=List[RecipeBase])
+@router.get("/saved", response_model=List[SavedRecipeResponse])
 def get_saved_recipes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -70,7 +104,63 @@ def get_saved_recipes(
         .order_by(UserSavedRecipe.created_at.desc())
         .all()
     )
-    return [RecipeBase(**r.payload) for r in saved_recipes]
+    return [_saved_recipe_response(r) for r in saved_recipes]
+
+
+@router.get("/saved/{recipe_id}", response_model=SavedRecipeResponse)
+def get_saved_recipe(
+    recipe_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recipe = _saved_recipe_query(db, current_user.id, recipe_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Saved recipe not found")
+    return _saved_recipe_response(recipe)
+
+
+@router.put("/saved/{recipe_id}", response_model=SavedRecipeResponse)
+def update_saved_recipe(
+    recipe_id: str,
+    update: SavedRecipeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recipe = _saved_recipe_query(db, current_user.id, recipe_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Saved recipe not found")
+
+    payload = dict(recipe.payload or {})
+    patch = update.model_dump(exclude_unset=True)
+    payload.update(patch)
+    recipe.payload = payload
+    recipe.name = payload.get("name", recipe.name)
+    recipe.description = payload.get("description", recipe.description)
+    recipe.image_url = payload.get("image_url")
+    db.commit()
+    db.refresh(recipe)
+    return _saved_recipe_response(recipe)
+
+
+@router.delete("/saved/{recipe_id}", status_code=204)
+def delete_saved_recipe(
+    recipe_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    recipe = _saved_recipe_query(db, current_user.id, recipe_id).first()
+    saved = None
+    if recipe:
+        saved = db.query(UserSavedRecipe).filter(
+            UserSavedRecipe.user_id == current_user.id,
+            UserSavedRecipe.recipe_id == recipe.id,
+        ).first()
+    if not saved:
+        raise HTTPException(status_code=404, detail="Saved recipe not found")
+
+    db.delete(saved)
+    db.commit()
+    return None
 
 
 @router.post("/visualize", response_model=List[Optional[str]])

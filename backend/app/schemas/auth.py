@@ -36,5 +36,19 @@ class MagicLinkSent(BaseModel):
     ok: bool = True
     message: str
 
+class OtpRequest(BaseModel):
+    email: EmailStr
+
+class OtpVerify(BaseModel):
+    email: EmailStr
+    code: str
+
+class OtpSent(BaseModel):
+    ok: bool = True
+    message: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+
 class AuthSession(Token):
     user: UserResponse

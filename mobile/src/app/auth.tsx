@@ -12,10 +12,10 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, ArrowRight, ArrowLeft, MailCheck } from 'lucide-react-native';
+import { Mail, ArrowRight, ArrowLeft, MailCheck, ClipboardPaste, Check } from 'lucide-react-native';
 import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
 import { Button } from '@/components/Button';
-import { requestMagicLink, verifyMagicLink } from '@/lib/authApi';
+import { requestOtp, verifyMagicLink, verifyOtp } from '@/lib/authApi';
 import { setSession } from '@/lib/session';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,13 +25,16 @@ export default function Auth() {
   const params = useLocalSearchParams<{ token?: string | string[] }>();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const otpInputRef = useRef<TextInput>(null);
   const handledToken = useRef<string | null>(null);
 
   const valid = EMAIL_RE.test(email.trim());
+  const validOtp = otp.length === 6;
   const linkToken = typeof params.token === 'string' ? params.token : '';
 
   // Auth is reached via replace() from onboarding, so the stack is often empty —
@@ -58,17 +61,61 @@ export default function Auth() {
       .finally(() => setBusy(false));
   }, [linkToken, router]);
 
-  const sendLink = async () => {
+  const sendCode = async () => {
     if (!valid || busy) return;
     setBusy(true);
     setError(null);
     try {
-      await requestMagicLink(email.trim().toLowerCase());
+      await requestOtp(email.trim().toLowerCase());
       setSent(true);
+      setOtp('');
+      requestAnimationFrame(() => otpInputRef.current?.focus());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'We could not send that link.');
+      setError(err instanceof Error ? err.message : 'We could not send that code.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const verifyCode = async (codeValue = otp) => {
+    const normalizedCode = codeValue.replace(/\D/g, '').slice(0, 6);
+    if (!valid || normalizedCode.length !== 6 || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const session = await verifyOtp(email.trim().toLowerCase(), normalizedCode);
+      setSession(session);
+      router.replace('/questions');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'That code did not work.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const changeOtp = (value: string) => {
+    setOtp(value.replace(/\D/g, '').slice(0, 6));
+  };
+
+  const pasteOtp = async () => {
+    if (busy) return;
+    let copied = '';
+    try {
+      const clipboard = await import('expo-clipboard');
+      copied = await clipboard.getStringAsync();
+    } catch {
+      otpInputRef.current?.focus();
+      setError('Paste from the keyboard menu, then tap Verify code.');
+      return;
+    }
+    const copiedCode = copied.replace(/\D/g, '').slice(0, 6);
+    if (!copiedCode) {
+      setError('No sign-in code found on your clipboard.');
+      return;
+    }
+    setOtp(copiedCode);
+    if (copiedCode.length === 6) {
+      await verifyCode(copiedCode);
     }
   };
 
@@ -99,22 +146,48 @@ export default function Auth() {
               {busy ? <ActivityIndicator size="small" color={C.white} /> : <MailCheck size={40} color={C.white} />}
             </View>
             <Text style={styles.eyebrow}>{busy ? 'Signing you in' : 'Check your inbox'}</Text>
-            <Text style={styles.title}>{busy ? `Verifying your\nmagic link` : `Tap the link\nwe just sent`}</Text>
+            <Text style={styles.title}>{busy ? `Verifying\nyour code` : `Enter your\n6-digit code`}</Text>
             <Text style={styles.desc}>
               {busy ? (
                 'Hold on while we finish signing you in.'
               ) : (
                 <>
-                  We emailed a magic link to{'\n'}
+                  We emailed a sign-in code to{'\n'}
                   <Text style={styles.emailStrong}>{email.trim()}</Text>
-                  {'\n'}Open it on this device to sign in — no password needed.
+                  {'\n'}Paste it below to open your account.
                 </>
               )}
             </Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
+            <View style={styles.otpWrap}>
+              <Pressable style={styles.otpField} onPress={() => otpInputRef.current?.focus()}>
+                <TextInput
+                  ref={otpInputRef}
+                  value={otp}
+                  onChangeText={changeOtp}
+                  placeholder="000000"
+                  placeholderTextColor={C.ink3}
+                  keyboardType="number-pad"
+                  inputMode="numeric"
+                  textContentType="oneTimeCode"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  returnKeyType="go"
+                  onSubmitEditing={() => verifyCode()}
+                  style={styles.otpInput}
+                />
+              </Pressable>
+              <Pressable onPress={pasteOtp} hitSlop={8} style={styles.pasteBtn} disabled={busy}>
+                <ClipboardPaste size={21} color={C.terracottaDeep} />
+              </Pressable>
+            </View>
+
             <View style={styles.bottom}>
-              <Button label={busy ? 'Waiting for link…' : 'Back to email entry'} IconRight={busy ? undefined : ArrowRight} onPress={() => setSent(false)} disabled={busy} large />
+              <Button label={busy ? 'Checking…' : 'Verify code'} IconRight={busy ? undefined : Check} onPress={() => verifyCode()} disabled={!validOtp || busy} large />
+              <Pressable onPress={sendCode} hitSlop={8} style={styles.textBtn} disabled={busy}>
+                <Text style={styles.textBtnLabel}>Resend code</Text>
+              </Pressable>
               <Pressable onPress={() => setSent(false)} hitSlop={8} style={styles.textBtn} disabled={busy}>
                 <Text style={styles.textBtnLabel}>Use a different email</Text>
               </Pressable>
@@ -129,7 +202,7 @@ export default function Auth() {
             <Text style={styles.eyebrow}>Welcome</Text>
             <Text style={styles.title}>Let&apos;s get{'\n'}you cooking</Text>
             <Text style={styles.desc}>
-              Enter your email and we&apos;ll send a magic link to sign you in. No passwords to remember.
+              Enter your email and we&apos;ll send a 6-digit code to sign you in. No passwords to remember.
             </Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -147,13 +220,13 @@ export default function Auth() {
                 autoComplete="email"
                 inputMode="email"
                 returnKeyType="go"
-                onSubmitEditing={sendLink}
+                onSubmitEditing={sendCode}
                 style={styles.input}
               />
             </Pressable>
 
             <View style={styles.bottom}>
-              <Button label={busy ? 'Sending…' : 'Send magic link'} IconRight={busy ? undefined : ArrowRight} onPress={sendLink} disabled={!valid || busy} large />
+              <Button label={busy ? 'Sending…' : 'Send code'} IconRight={busy ? undefined : ArrowRight} onPress={sendCode} disabled={!valid || busy} large />
               <Text style={styles.legal}>
                 By continuing you agree to our Terms & Privacy Policy.
               </Text>
@@ -191,6 +264,36 @@ const styles = StyleSheet.create({
     ...SHADOW.sm,
   },
   input: { flex: 1, fontFamily: F.sansMed, fontSize: 16, color: C.ink, height: '100%' },
+  otpWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28 },
+  otpField: {
+    flex: 1,
+    height: 64,
+    borderRadius: R.md,
+    backgroundColor: C.paper,
+    borderWidth: 1.5,
+    borderColor: C.line2,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    ...SHADOW.sm,
+  },
+  otpInput: {
+    height: '100%',
+    fontFamily: F.sansBold,
+    fontSize: 28,
+    color: C.ink,
+    letterSpacing: 8,
+    textAlign: 'center',
+  },
+  pasteBtn: {
+    width: 54,
+    height: 54,
+    borderRadius: R.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.saffronSoft,
+    borderWidth: 1,
+    borderColor: C.line2,
+  },
   bottom: { marginTop: 'auto', gap: 16 },
   legal: { fontFamily: F.sans, fontSize: 12.5, color: C.ink3, textAlign: 'center', lineHeight: 18 },
   textBtn: { alignItems: 'center', paddingVertical: 4 },

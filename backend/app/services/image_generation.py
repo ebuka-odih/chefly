@@ -3,12 +3,6 @@
 OpenRouter has no `/images` endpoint, so we call an image-capable chat model
 (google/gemini-2.5-flash-image by default) with `modalities: [image, text]` and
 read the returned base64 PNG.
-
-Generated images are cached on disk by a hash of the prompt — identical requests
-return instantly and cost nothing (the "aggressive image caching" in the spec).
-The function returns a relative "/static/images/<hash>.png" path; the route layer
-turns it into an absolute URL. If disk writing fails we fall back to a raw data URL
-so the client still gets an image.
 """
 import base64
 import hashlib
@@ -22,7 +16,6 @@ from app.config import settings
 # app/services/image_generation.py -> app/static/images
 STATIC_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "static", "images"))
 
-# Product spec image prompt (docs/MIGRATION.md §9).
 DISH_PROMPT = (
     "Photorealistic professional food photography of {name}, beautifully plated on a "
     "modern plate, appetizing lighting, gentle steam, restaurant-quality presentation, "
@@ -53,7 +46,6 @@ def generate_image_from_prompt(prompt: str) -> Optional[str]:
     digest, path = _cache_path(prompt)
     rel_url = f"/static/images/{digest}.png"
 
-    # Cache hit — no API call.
     if os.path.exists(path):
         return rel_url
 
@@ -81,7 +73,7 @@ def generate_image_from_prompt(prompt: str) -> Optional[str]:
             print(f"[image_generation] No image returned: {data.get('error') or data}")
             return None
 
-        data_url = images[0]["image_url"]["url"]  # data:image/png;base64,....
+        data_url = images[0]["image_url"]["url"]
         b64 = data_url.split(",", 1)[1] if "," in data_url else data_url
         raw = base64.b64decode(b64)
 
@@ -94,7 +86,7 @@ def generate_image_from_prompt(prompt: str) -> Optional[str]:
             print(f"[image_generation] Could not cache to disk ({disk_err}); returning data URL.")
             return data_url
 
-    except Exception as e:  # noqa: BLE001 - degrade gracefully (UI shows a placeholder)
+    except Exception as e:  # noqa: BLE001
         print(f"[image_generation] Error generating image: {e}")
         return None
 

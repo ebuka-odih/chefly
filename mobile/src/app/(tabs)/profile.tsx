@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,8 @@ import {
 } from 'lucide-react-native';
 import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
 import { PROFILE } from '@/data/mock';
-import { useMe, initialOf } from '@/lib/profileStore';
+import { useMe, initialOf, profileFromEmail, updateMe } from '@/lib/profileStore';
+import { clearSession, useSession } from '@/lib/session';
 
 type IconCmp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 const tasteIcon = (label: string): IconCmp => {
@@ -57,8 +58,18 @@ export default function Profile() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const me = useMe();
+  const session = useSession();
   const [notif, setNotif] = useState(true);
   const [watermark, setWatermark] = useState(false);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    const fallback = profileFromEmail(session.user.email);
+    updateMe({
+      name: session.user.name?.trim() || fallback.name,
+      handle: fallback.handle,
+    });
+  }, [session?.user?.email, session?.user?.name]);
 
   const taste = [
     { label: 'Cuisine focus', value: me.cuisine },
@@ -147,7 +158,7 @@ export default function Profile() {
         <Row icon={<Trash2 size={18} color={C.danger} />} label="Delete account" danger onPress={() => router.push('/delete-account')} />
       </View>
 
-      <Pressable style={styles.signout} onPress={() => router.replace('/onboarding')}>
+      <Pressable style={styles.signout} onPress={() => { clearSession(); router.replace('/onboarding'); }}>
         <LogOut size={18} color={C.danger} />
         <Text style={styles.signoutText}>Sign out</Text>
       </Pressable>

@@ -37,7 +37,25 @@ class RecipeRequest(BaseModel):
 
 
 class SaveRecipeRequest(RecipeBase):
-    pass
+    client_id: Optional[str] = None
+
+
+class SavedRecipeResponse(RecipeBase):
+    id: str
+
+
+class SavedRecipeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    why_now: Optional[str] = None
+    estimated_time_minutes: Optional[int] = None
+    difficulty: Optional[str] = None
+    meal_type: Optional[str] = None
+    image_url: Optional[str] = None
+    uses_from_user: Optional[List[str]] = None
+    extra_ingredients: Optional[List[str]] = None
+    steps: Optional[List[str]] = None
+    step_images: Optional[List[Optional[str]]] = None
 
 
 class VisualizeStepsRequest(BaseModel):

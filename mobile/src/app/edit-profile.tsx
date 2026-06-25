@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
 import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/Button';
 import { useMe, updateMe, initialOf } from '@/lib/profileStore';
+import { updateProfileName } from '@/lib/authApi';
 
 const CUISINES = ['Nigerian', 'West African', 'Mediterranean', 'Italian', 'Asian', 'Mexican', 'Anything'];
 const SPICES = ['Mild', 'Medium', 'Hot', 'Fiery'];
@@ -31,13 +32,25 @@ export default function EditProfile() {
   const [cuisine, setCuisine] = useState(me.cuisine);
   const [spice, setSpice] = useState(me.spice);
   const [avoid, setAvoid] = useState(me.avoid);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const save = () => {
+  const save = async () => {
+    if (busy) return;
     const cleanName = name.trim() || me.name;
     let cleanHandle = handle.trim();
     if (cleanHandle && !cleanHandle.startsWith('@')) cleanHandle = `@${cleanHandle}`;
-    updateMe({ name: cleanName, handle: cleanHandle || me.handle, cuisine, spice, avoid });
-    router.back();
+    setBusy(true);
+    setError(null);
+    try {
+      await updateProfileName(cleanName);
+      updateMe({ name: cleanName, handle: cleanHandle || me.handle, cuisine, spice, avoid });
+      router.back();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save profile.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -62,6 +75,7 @@ export default function EditProfile() {
           <Text style={styles.fieldLabel}>Name</Text>
           <TextInput value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={C.ink3} style={styles.input} />
         </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
         <View style={[styles.field, { marginTop: 12 }]}>
           <Text style={styles.fieldLabel}>Username</Text>
           <TextInput
@@ -98,7 +112,8 @@ export default function EditProfile() {
       </ScrollView>
 
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}>
-        <Button label="Save changes" Icon={Check} onPress={save} large />
+        <Button label={busy ? 'Saving...' : 'Save changes'} Icon={busy ? undefined : Check} onPress={save} disabled={busy} large />
+        {busy ? <ActivityIndicator color={C.terracotta} style={styles.saving} /> : null}
       </View>
     </View>
   );
@@ -114,6 +129,7 @@ const styles = StyleSheet.create({
   field: { backgroundColor: C.surface, borderRadius: R.md, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6, ...SHADOW.sm },
   fieldLabel: { fontFamily: F.sansSemi, fontSize: 12, color: C.ink3 },
   input: { fontFamily: F.sansMed, fontSize: 16, color: C.ink, paddingVertical: 6, marginTop: 1 },
+  error: { fontFamily: F.sansSemi, fontSize: 12.5, color: C.danger, marginTop: 8 },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chip: { paddingVertical: 11, paddingHorizontal: 16, borderRadius: R.pill, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.line2 },
@@ -122,4 +138,5 @@ const styles = StyleSheet.create({
   chipTxtOn: { color: C.green800 },
 
   bottom: { paddingHorizontal: 22, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg },
+  saving: { position: 'absolute', right: 36, top: 28 },
 });

@@ -76,7 +76,7 @@ export default function Ingredients() {
           IconRight={ArrowRight}
           large
           disabled={items.length === 0}
-          onPress={() => router.push({ pathname: '/suggestions', params: { n: String(items.length) } })}
+          onPress={() => router.push({ pathname: '/suggestions', params: { ingredients: JSON.stringify(items) } })}
         />
       </View>
     </View>

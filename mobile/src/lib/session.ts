@@ -33,6 +33,12 @@ export function setSession(next: AuthSession | null) {
   emit();
 }
 
+export function updateSessionUser(user: AuthUser) {
+  if (!session) return;
+  session = { ...session, user };
+  emit();
+}
+
 export function clearSession() {
   setSession(null);
 }

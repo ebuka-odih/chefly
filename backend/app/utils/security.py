@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta
+import hashlib
+import hmac
+import secrets
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -42,6 +45,18 @@ def verify_magic_link_token(token: str) -> str:
     if not email:
         raise JWTError("Missing subject")
     return email
+
+def create_otp_code(email: str) -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+def hash_otp_code(email: str, code: str) -> str:
+    normalized_code = "".join(char for char in code if char.isdigit())
+    normalized_email = email.lower()
+    payload = f"{normalized_email}:{normalized_code}".encode("utf-8")
+    return hmac.new(settings.SECRET_KEY.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+
+def verify_otp_code(email: str, code: str, code_hash: str) -> bool:
+    return secrets.compare_digest(hash_otp_code(email, code), code_hash)
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(

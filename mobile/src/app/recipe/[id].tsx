@@ -9,6 +9,7 @@ import { getRecipe, nutritionFor, buildBreakdown, emojiFor, SAVED_RECIPES } from
 import { AppHeader, IconBtn } from '@/components/AppHeader';
 import { NutritionFlower } from '@/components/NutritionFlower';
 import { MacroBadge } from '@/components/MacroBadge';
+import { deleteSavedRecipe, getRegisteredRecipe, saveRecipe } from '@/lib/recipesApi';
 
 const TOTAL_WEIGHT = 350; // demo plate weight (g)
 
@@ -30,7 +31,7 @@ export default function RecipeDetail() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const recipe = getRecipe(id);
+  const recipe = getRegisteredRecipe(id) ?? getRecipe(id);
   const n = nutritionFor(recipe.id);
   const breakdown = buildBreakdown(recipe);
   const emoji = emojiFor(recipe);
@@ -38,6 +39,16 @@ export default function RecipeDetail() {
   const [saved, setSaved] = useState(SAVED_RECIPES.includes(recipe.id));
   const grams = (pct: number) => Math.max(1, Math.round((pct / 100) * TOTAL_WEIGHT));
   const flowerSize = Math.min(width - 96, 290);
+  const toggleSaved = async () => {
+    const nextSaved = !saved;
+    setSaved(nextSaved);
+    try {
+      if (nextSaved) await saveRecipe(recipe);
+      else await deleteSavedRecipe(recipe.id);
+    } catch {
+      setSaved(!nextSaved);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -45,7 +56,7 @@ export default function RecipeDetail() {
         variant="page"
         onBack={() => router.back()}
         right={
-          <IconBtn onPress={() => setSaved((s) => !s)} style={saved ? styles.savedBtn : undefined}>
+          <IconBtn onPress={toggleSaved} style={saved ? styles.savedBtn : undefined}>
             <Bookmark size={19} color={saved ? C.white : C.ink} fill={saved ? C.white : 'none'} strokeWidth={2.2} />
           </IconBtn>
         }

@@ -4,16 +4,19 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { House, Bookmark, Clock, User, ScanLine } from 'lucide-react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { C, R, GRAD, SHADOW } from '@/theme/tokens';
 
 type IconCmp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+type TabBarProps = {
+  state: { index: number; routes: { name: string }[] };
+  navigation: { navigate: (name: string) => void };
+};
 // Home · Saved | scan | History · Profile
 const ICONS: Record<string, IconCmp> = { index: House, saved: Bookmark, history: Clock, profile: User };
 const LEFT = ['index', 'saved'];
 const RIGHT = ['history', 'profile'];
 
-export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+export function CustomTabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const activeName = state.routes[state.index]?.name;

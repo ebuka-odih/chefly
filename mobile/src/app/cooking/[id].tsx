@@ -7,12 +7,13 @@ import { X, ArrowLeft, ArrowRight, Timer, Check } from 'lucide-react-native';
 import { C, F, GRAD } from '@/theme/tokens';
 import { getRecipe } from '@/data/mock';
 import { Button } from '@/components/Button';
+import { getRegisteredRecipe } from '@/lib/recipesApi';
 
 export default function CookingMode() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const recipe = getRecipe(id);
+  const recipe = getRegisteredRecipe(id) ?? getRecipe(id);
   const steps = recipe.steps;
   const [i, setI] = useState(0);
   const [done, setDone] = useState(false);

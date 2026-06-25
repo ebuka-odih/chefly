@@ -37,6 +37,14 @@ export function updateMe(patch: Partial<Me>) {
   listeners.forEach((l) => l());
 }
 
+export function profileFromEmail(email: string) {
+  const local = email.split('@', 1)[0] || 'chefly';
+  return {
+    name: local.replace(/[._-]+/g, ' ').trim().replace(/\b\w/g, (char) => char.toUpperCase()) || 'Chefly Cook',
+    handle: `@${local.replace(/[^a-zA-Z0-9_]+/g, '').toLowerCase() || 'chefly'}`,
+  };
+}
+
 export function useMe(): Me {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
