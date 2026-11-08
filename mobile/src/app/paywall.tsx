@@ -1,11 +1,17 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Crown, Check, Sparkles, X } from 'lucide-react-native';
+import RevenueCatUI from 'react-native-purchases-ui';
+import { Crown, Check, Sparkles, X, RefreshCcw, ShieldCheck } from 'lucide-react-native';
 import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
 import { Button } from '@/components/Button';
+import {
+  presentCheflyPaywall,
+  restoreCheflyPurchases,
+  useSubscription,
+} from '@/lib/subscriptionStore';
 
 const PERKS = [
   { emoji: '📸', label: 'Unlimited fridge snaps', hint: 'Scan as much as you cook' },
@@ -14,15 +20,57 @@ const PERKS = [
   { emoji: '❤️', label: 'Save & revisit every win', hint: 'Build your own cookbook' },
 ];
 
-type Plan = 'yearly' | 'monthly';
-
 export default function Paywall() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [plan, setPlan] = useState<Plan>('yearly');
+  const subscription = useSubscription();
+  const [restoring, setRestoring] = useState(false);
 
-  // No backend yet — both actions just enter the app.
   const enter = () => router.replace('/(tabs)');
+
+  useEffect(() => {
+    if (subscription.isPro) {
+      router.replace('/(tabs)');
+    }
+  }, [router, subscription.isPro]);
+
+  const showPaywall = async () => {
+    try {
+      const result = await presentCheflyPaywall();
+      if (result === RevenueCatUI.PAYWALL_RESULT.NOT_PRESENTED) {
+        Alert.alert('Paywall unavailable', 'No RevenueCat paywall is available yet. Confirm the default offering is configured in RevenueCat.');
+      }
+      if (result === RevenueCatUI.PAYWALL_RESULT.PURCHASED || result === RevenueCatUI.PAYWALL_RESULT.RESTORED) {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not open the paywall.';
+      Alert.alert('RevenueCat paywall', message);
+    }
+  };
+
+  const restore = async () => {
+    setRestoring(true);
+    try {
+      const customerInfo = await restoreCheflyPurchases();
+      if (customerInfo.entitlements.active['Chefly Pro']) {
+        router.replace('/(tabs)');
+        return;
+      }
+      Alert.alert('Restore completed', 'We restored your account, but no active Chefly Pro entitlement was found yet.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not restore your purchases.';
+      Alert.alert('Restore failed', message);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const planCards = [
+    subscription.packages.yearly,
+    subscription.packages.monthly,
+    subscription.packages.lifetime,
+  ].filter((aPackage): aPackage is NonNullable<typeof aPackage> => Boolean(aPackage));
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 8 }]}>
@@ -40,10 +88,10 @@ export default function Paywall() {
           </View>
           <View style={styles.proPill}>
             <Sparkles size={13} color={C.gold} />
-            <Text style={styles.proPillText}>Chefly Plus</Text>
+            <Text style={styles.proPillText}>Chefly Pro</Text>
           </View>
           <Text style={styles.title}>Cook anything,{'\n'}any night</Text>
-          <Text style={styles.subtitle}>Start a 7-day free trial. Cancel anytime — no charge until it ends.</Text>
+          <Text style={styles.subtitle}>RevenueCat handles the paywall, subscription products, purchase restore, and entitlement unlock for Chefly Pro.</Text>
         </View>
 
         <View style={styles.perks}>
@@ -61,49 +109,61 @@ export default function Paywall() {
           ))}
         </View>
 
+        <View style={styles.statusCard}>
+          <View style={styles.statusHead}>
+            <ShieldCheck size={17} color={C.green700} />
+            <Text style={styles.statusTitle}>Subscription status</Text>
+          </View>
+          <Text style={styles.statusBody}>
+            {subscription.ready
+              ? subscription.isPro
+                ? 'Chefly Pro entitlement is active.'
+                : 'Chefly Pro entitlement is not active yet.'
+              : 'Checking RevenueCat customer info…'}
+          </Text>
+          {subscription.lastError ? <Text style={styles.error}>{subscription.lastError}</Text> : null}
+        </View>
+
+        <View style={styles.planList}>
+          <Text style={styles.planListTitle}>Products in your default offering</Text>
+          {planCards.length > 0 ? (
+            planCards.map((aPackage) => (
+              <View key={aPackage.identifier} style={styles.planCard}>
+                <View>
+                  <Text style={styles.planName}>{aPackage.product.title}</Text>
+                  <Text style={styles.planSub}>
+                    {aPackage.identifier} · {aPackage.product.identifier}
+                  </Text>
+                </View>
+                <Text style={styles.planPrice}>{aPackage.product.priceString}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.planFallback}>
+              No products are coming back from RevenueCat yet. Create the `default` offering and attach your `lifetime`, `yearly`, and `monthly` packages.
+            </Text>
+          )}
+        </View>
       </ScrollView>
 
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}>
-        <View style={styles.plans}>
-          <Pressable onPress={() => setPlan('yearly')} style={[styles.plan, plan === 'yearly' && styles.planOn]}>
-            <View style={styles.bestBadge}>
-              <Text style={styles.bestBadgeText}>BEST VALUE · SAVE 58%</Text>
-            </View>
-            <View style={styles.planRow}>
-              <View style={[styles.radio, plan === 'yearly' && styles.radioOn]}>
-                {plan === 'yearly' ? <View style={styles.radioDot} /> : null}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.planName}>Yearly</Text>
-                <Text style={styles.planSub}>$34.99 / year</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.planPrice}>$2.92</Text>
-                <Text style={styles.planPer}>/ month</Text>
-              </View>
-            </View>
-          </Pressable>
-
-          <Pressable onPress={() => setPlan('monthly')} style={[styles.plan, plan === 'monthly' && styles.planOn]}>
-            <View style={styles.planRow}>
-              <View style={[styles.radio, plan === 'monthly' && styles.radioOn]}>
-                {plan === 'monthly' ? <View style={styles.radioDot} /> : null}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.planName}>Monthly</Text>
-                <Text style={styles.planSub}>Billed every month</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.planPrice}>$6.99</Text>
-                <Text style={styles.planPer}>/ month</Text>
-              </View>
-            </View>
-          </Pressable>
-        </View>
-
-        <Button label="Start 7-day free trial" Icon={Sparkles} onPress={enter} large />
+        <Button
+          label={subscription.busy ? 'Opening paywall…' : 'Open RevenueCat paywall'}
+          Icon={subscription.busy ? undefined : Sparkles}
+          onPress={showPaywall}
+          disabled={subscription.busy}
+          large
+        />
+        <Button
+          label={restoring ? 'Restoring…' : 'Restore purchases'}
+          Icon={restoring ? undefined : RefreshCcw}
+          onPress={restore}
+          variant="outline"
+          disabled={subscription.busy || restoring}
+          large
+        />
         <Text style={styles.terms}>
-          {plan === 'yearly' ? '7 days free, then $34.99/year' : '7 days free, then $6.99/month'} · Cancel anytime
+          Hosted by RevenueCat · Entitlement required: Chefly Pro
         </Text>
         <Pressable onPress={enter} hitSlop={8} style={styles.skip}>
           <Text style={styles.skipText}>Maybe later</Text>
@@ -128,19 +188,18 @@ const styles = StyleSheet.create({
   perkIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
   perkLabel: { fontFamily: F.sansSemi, fontSize: 15.5, color: C.ink },
   perkHint: { fontFamily: F.sans, fontSize: 13, color: C.ink3, marginTop: 1 },
-  plans: { gap: 10, marginBottom: 2 },
-  plan: { backgroundColor: C.paper, borderWidth: 1.5, borderColor: C.line2, borderRadius: R.md, padding: 16 },
-  planOn: { borderColor: C.terracotta, backgroundColor: C.saffronSoft, ...SHADOW.sm },
-  bestBadge: { alignSelf: 'flex-start', backgroundColor: C.terracotta, borderRadius: R.pill, paddingVertical: 4, paddingHorizontal: 10, marginBottom: 11 },
-  bestBadgeText: { fontFamily: F.sansBold, fontSize: 10.5, letterSpacing: 0.8, color: C.white },
-  planRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
-  radio: { width: 24, height: 24, borderRadius: R.pill, borderWidth: 2, borderColor: C.line2, alignItems: 'center', justifyContent: 'center' },
-  radioOn: { borderColor: C.terracotta },
-  radioDot: { width: 12, height: 12, borderRadius: R.pill, backgroundColor: C.terracotta },
-  planName: { fontFamily: F.sansSemi, fontSize: 16, color: C.ink },
-  planSub: { fontFamily: F.sans, fontSize: 13, color: C.ink3, marginTop: 1 },
-  planPrice: { fontFamily: F.serifBold, fontSize: 20, color: C.ink },
-  planPer: { fontFamily: F.sans, fontSize: 12, color: C.ink3 },
+  statusCard: { marginTop: 22, borderRadius: R.lg, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, padding: 16, gap: 8 },
+  statusHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statusTitle: { fontFamily: F.sansBold, fontSize: 14, color: C.ink },
+  statusBody: { fontFamily: F.sans, fontSize: 14, lineHeight: 21, color: C.ink2 },
+  error: { fontFamily: F.sansSemi, fontSize: 13, lineHeight: 19, color: C.danger },
+  planList: { marginTop: 18, gap: 10 },
+  planListTitle: { fontFamily: F.sansBold, fontSize: 13, letterSpacing: 0.8, color: C.ink3, textTransform: 'uppercase' },
+  planCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: C.paper, borderWidth: 1, borderColor: C.line, borderRadius: R.md, padding: 14 },
+  planName: { fontFamily: F.sansSemi, fontSize: 15, color: C.ink },
+  planSub: { fontFamily: F.sans, fontSize: 12.5, color: C.ink3, marginTop: 2 },
+  planPrice: { fontFamily: F.serifBold, fontSize: 18, color: C.ink },
+  planFallback: { fontFamily: F.sans, fontSize: 14, lineHeight: 21, color: C.ink2 },
   bottom: { paddingTop: 12, gap: 12, borderTopWidth: 1, borderTopColor: C.line },
   terms: { fontFamily: F.sans, fontSize: 12.5, color: C.ink3, textAlign: 'center' },
   skip: { alignItems: 'center', paddingVertical: 2 },

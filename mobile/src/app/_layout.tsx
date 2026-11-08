@@ -12,6 +12,7 @@ import {
   Inter_700Bold,
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
+import { RevenueCatBootstrap } from '@/components/RevenueCatBootstrap';
 import { C } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync();
@@ -34,6 +35,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <RevenueCatBootstrap />
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.cream } }}>
           <Stack.Screen name="index" />

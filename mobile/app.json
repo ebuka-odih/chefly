@@ -47,6 +47,21 @@
     },
     "extra": {
       "publicApiBaseUrl": "https://chefly.eecollective.ink",
+      "revenueCat": {
+        "apiKey": "test_QlSbqXjCrHRejwITrhtmvaGbJZa",
+        "entitlementId": "Chefly Pro",
+        "offeringId": "default",
+        "productIds": {
+          "lifetime": "lifetime",
+          "yearly": "yearly",
+          "monthly": "monthly"
+        },
+        "packageIds": {
+          "lifetime": "lifetime",
+          "yearly": "yearly",
+          "monthly": "monthly"
+        }
+      },
       "router": {},
       "eas": {
         "projectId": "13ab5d53-13e8-49f0-82de-c4550c908414"

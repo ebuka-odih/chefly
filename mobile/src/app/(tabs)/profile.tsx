@@ -1,16 +1,24 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChefHat, ChevronRight, Bell, Sparkles, HelpCircle, LogOut, Pencil,
-  Shield, FileText, Trash2, Globe, Flame, Ban,
+  Shield, FileText, Trash2, Globe, Flame, Ban, Crown, RotateCcw,
 } from 'lucide-react-native';
 import { C, F, R, GRAD, SHADOW } from '@/theme/tokens';
+import { Button } from '@/components/Button';
 import { PROFILE } from '@/data/mock';
 import { useMe, initialOf, profileFromEmail, updateMe } from '@/lib/profileStore';
 import { clearSession, useSession } from '@/lib/session';
+import {
+  presentCheflyCustomerCenter,
+  presentCheflyPaywall,
+  restoreCheflyPurchases,
+  useSubscription,
+} from '@/lib/subscriptionStore';
+import { formatEntitlementStatus, getCheflyProEntitlement } from '@/lib/revenueCat';
 
 type IconCmp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 const tasteIcon = (label: string): IconCmp => {
@@ -59,23 +67,62 @@ export default function Profile() {
   const insets = useSafeAreaInsets();
   const me = useMe();
   const session = useSession();
+  const sessionUser = session?.user ?? null;
+  const subscription = useSubscription();
   const [notif, setNotif] = useState(true);
   const [watermark, setWatermark] = useState(false);
 
   useEffect(() => {
-    if (!session?.user) return;
-    const fallback = profileFromEmail(session.user.email);
+    if (!sessionUser) return;
+    const fallback = profileFromEmail(sessionUser.email);
     updateMe({
-      name: session.user.name?.trim() || fallback.name,
+      name: sessionUser.name?.trim() || fallback.name,
       handle: fallback.handle,
     });
-  }, [session?.user?.email, session?.user?.name]);
+  }, [sessionUser]);
 
   const taste = [
     { label: 'Cuisine focus', value: me.cuisine },
     { label: 'Spice level', value: me.spice },
     { label: 'Avoid', value: me.avoid },
   ];
+
+  const proEntitlement = getCheflyProEntitlement(subscription.customerInfo);
+
+  const openCustomerCenter = async () => {
+    try {
+      await presentCheflyCustomerCenter();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not open Customer Center.';
+      if (subscription.customerInfo?.managementURL) {
+        Alert.alert('Customer Center unavailable', `${message}\n\nOpening the store subscription management page instead.`);
+        Linking.openURL(subscription.customerInfo.managementURL).catch(() => {
+          Alert.alert('Subscription management', message);
+        });
+        return;
+      }
+      Alert.alert('Customer Center', message);
+    }
+  };
+
+  const restore = async () => {
+    try {
+      await restoreCheflyPurchases();
+      Alert.alert('Restore complete', 'RevenueCat finished restoring your purchases.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not restore your purchases.';
+      Alert.alert('Restore failed', message);
+    }
+  };
+
+  const openPaywall = async () => {
+    try {
+      await presentCheflyPaywall();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not open the paywall.';
+      Alert.alert('RevenueCat paywall', message);
+    }
+  };
 
   return (
     <ScrollView
@@ -129,6 +176,42 @@ export default function Profile() {
             </View>
           );
         })}
+      </View>
+
+      <Text style={styles.sectionTitle}>Chefly Pro</Text>
+      <View style={styles.card}>
+        <View style={styles.subscriptionHero}>
+          <View style={styles.subscriptionIcon}>
+            <Crown size={20} color={C.gold} strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.subscriptionTitle}>{subscription.isPro ? 'Chefly Pro is active' : 'Chefly Pro is locked'}</Text>
+            <Text style={styles.subscriptionMeta}>{formatEntitlementStatus(proEntitlement)}</Text>
+            <Text style={styles.subscriptionCopy}>
+              {subscription.ready
+                ? subscription.isPro
+                  ? 'Customer info is synced through RevenueCat. Use Customer Center to manage plans and support actions.'
+                  : 'Open the hosted RevenueCat paywall to subscribe, or restore previous purchases on this account.'
+                : 'RevenueCat is checking your customer info and offerings.'}
+            </Text>
+            {subscription.lastError ? <Text style={styles.subscriptionError}>{subscription.lastError}</Text> : null}
+          </View>
+        </View>
+        <View style={styles.subscriptionActions}>
+          <Button
+            label={subscription.isPro ? 'Manage subscription' : 'See plans'}
+            onPress={subscription.isPro ? openCustomerCenter : openPaywall}
+            variant={subscription.isPro ? 'dark' : 'primary'}
+            large
+          />
+          <Button
+            label="Restore purchases"
+            onPress={restore}
+            variant="outline"
+            Icon={RotateCcw}
+            large
+          />
+        </View>
       </View>
 
       <Text style={styles.sectionTitle}>Settings</Text>
@@ -216,6 +299,14 @@ const styles = StyleSheet.create({
   tasteLabel: { flex: 1, fontFamily: F.sansSemi, fontSize: 14.5, color: C.ink },
   valuePill: { backgroundColor: C.saffronSoft, borderRadius: R.pill, paddingVertical: 6, paddingHorizontal: 13 },
   valuePillTxt: { fontFamily: F.sansBold, fontSize: 13, color: C.green800, letterSpacing: -0.1 },
+
+  subscriptionHero: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingHorizontal: 16, paddingTop: 16 },
+  subscriptionIcon: { width: 38, height: 38, borderRadius: R.pill, backgroundColor: C.char, alignItems: 'center', justifyContent: 'center' },
+  subscriptionTitle: { fontFamily: F.sansSemi, fontSize: 16, color: C.ink },
+  subscriptionMeta: { fontFamily: F.sansBold, fontSize: 12.5, color: C.terracotta, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.7 },
+  subscriptionCopy: { fontFamily: F.sans, fontSize: 14, lineHeight: 21, color: C.ink2, marginTop: 8 },
+  subscriptionError: { fontFamily: F.sansSemi, fontSize: 13, color: C.danger, marginTop: 8, lineHeight: 19 },
+  subscriptionActions: { gap: 10, padding: 16 },
 
   tgl: { width: 46, height: 28, borderRadius: 14, backgroundColor: C.line2, justifyContent: 'center', paddingHorizontal: 3 },
   tglOn: { backgroundColor: C.green700 },
